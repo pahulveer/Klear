@@ -179,7 +179,7 @@ export default function SettlePage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -354,9 +354,9 @@ export default function SettlePage() {
       </div>
 
       {/* Main Grid: Who Pays Whom (Left 8) + UPI QR & Nudge (Right 4) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full min-w-0">
         {/* Left Column: Who Pays Whom Cards */}
-        <div className="lg:col-span-8 space-y-4">
+        <div className="lg:col-span-8 space-y-4 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-black text-black flex items-center gap-2">
@@ -915,7 +915,7 @@ export default function SettlePage() {
         </div>
 
         {/* Right Column: Direct UPI QR + WhatsApp Nudge + Audit History */}
-        <div className="lg:col-span-4 space-y-5">
+        <div className="lg:col-span-4 space-y-5 min-w-0">
           {/* Box 1: Direct UPI QR */}
           <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3 text-center">
             <div className="flex items-center justify-between text-xs font-black">

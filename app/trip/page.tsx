@@ -423,7 +423,7 @@ export default function TripPlannerPage() {
   }, [members, detailedBalances, goingMembers]);
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -689,9 +689,9 @@ export default function TripPlannerPage() {
       )}
 
       {/* Main Grid: Form & Controls (7 cols) + Planned vs Actual Spend (5 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full min-w-0">
         {/* Left Column: AI Generator Box with Integrated Flake Simulator */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 space-y-6 min-w-0">
           {/* AI Pre-Trip Budget Generator Card */}
           <div className="bg-[#FFEDD5] border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-4">
             <div className="flex items-center justify-between">
@@ -921,7 +921,7 @@ export default function TripPlannerPage() {
         </div>
 
         {/* Right Column: Planned vs. Actual Spend + Live Flake Impact Per-Person Breakdown */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-5 space-y-6 min-w-0">
           <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-4">
             <div className="flex items-center justify-between">
               <div>

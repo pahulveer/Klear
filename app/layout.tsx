@@ -1,9 +1,15 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { LedgerProvider } from "@/context/LedgerContext";
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "Klear — Hostel Expense Splitter & Trip Planner",
@@ -18,12 +24,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="bg-[#FAF8F5] text-zinc-900 min-h-screen flex flex-col antialiased">
+      <body className="bg-[#FAF8F5] text-zinc-900 min-h-screen flex flex-col antialiased overflow-x-hidden max-w-[100vw] w-full">
         <LedgerProvider>
           <Header />
-          <div className="flex flex-1">
+          <div className="flex flex-1 w-full max-w-full min-w-0 overflow-x-hidden">
             <Sidebar />
-            <main className="flex-1 min-w-0 pb-24 md:pb-12 overflow-x-hidden">
+            <main className="flex-1 w-full min-w-0 max-w-full px-3 sm:px-6 pt-4 pb-28 md:pb-8 overflow-x-hidden">
               {children}
             </main>
           </div>

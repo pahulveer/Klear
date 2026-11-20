@@ -396,7 +396,7 @@ export default function AddExpensePage() {
   const payerShare = liveSplitBreakdown.breakdown[paidById] || 0;
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6">
       {/* Top Navigation & Status */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
@@ -465,8 +465,8 @@ export default function AddExpensePage() {
       )}
 
       {/* Main Grid: Form Left (8 cols) + Live Ledger Impact Right (4 cols) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div className="lg:col-span-8 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full min-w-0">
+        <div className="lg:col-span-8 space-y-6 min-w-0">
           {/* Prominent WhatsApp Import Card */}
           <div className="bg-[#DCFCE7] border-2 border-black rounded-2xl p-4 shadow-[4px_4px_0_0_#000] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -1065,7 +1065,7 @@ export default function AddExpensePage() {
         </div>
 
         {/* Right Sidebar: Live Ledger Impact */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-6 min-w-0">
           <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="font-black text-base text-black">

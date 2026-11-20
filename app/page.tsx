@@ -205,7 +205,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6">
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -246,9 +246,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Grid: Left 8 Cols + Right 4 Cols */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full min-w-0">
         {/* Left Column: Hero Card + Stat Tiles + Dues + Expenses */}
-        <div className="lg:col-span-8 space-y-6">
+        <div className="lg:col-span-8 space-y-6 min-w-0">
           {/* Hero Card */}
           <div className="bg-[#FF7A00] border-2 border-black rounded-2xl p-5 md:p-6 shadow-[4px_4px_0_0_#000] text-black relative overflow-hidden">
             {/* Top row */}
@@ -602,7 +602,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Right Column: Room Debt Matrix + Net Tab Flow Vector + WhatsApp Nudge */}
-        <div className="lg:col-span-4 space-y-6">
+        <div className="lg:col-span-4 space-y-6 min-w-0">
           {/* Card 1: Room Debt Matrix */}
           <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-4">
             <div className="flex items-center justify-between">
