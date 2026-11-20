@@ -58,7 +58,14 @@ All amounts must be numeric (INR).`;
       },
     };
 
-    const modelsToTry = ["gemini-3.0-flash", "gemini-3-flash-preview"];
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const modelsToTry = [
+      "gemini-3.0-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-2.0-flash",
+      "gemini-3-flash-preview",
+    ];
     let response: Response | null = null;
     let result: any = null;
     let usedModel = "";
@@ -67,38 +74,77 @@ All amounts must be numeric (INR).`;
       const model = modelsToTry[i];
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(45000), // 45s timeout
-        });
+      // For gemini-3.0-flash, allow up to 2 attempts (initial + 1 retry after 1.5s on 503/429)
+      const maxAttempts = model === "gemini-3.0-flash" ? 2 : 1;
 
-        const data = await res.json();
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(45000), // 45s timeout
+          });
 
-        // If 404 (model not found), retry with next fallback model
-        if (
-          res.status === 404 ||
-          data.error?.code === 404 ||
-          data.error?.status === "NOT_FOUND"
-        ) {
-          console.warn(`Model ${model} returned 404, falling back to next model...`);
-          if (i < modelsToTry.length - 1) {
+          const data = await res.json();
+          const statusCode = res.status;
+          const errorCode = data.error?.code || statusCode;
+          const isRateLimitOrUnavailable =
+            statusCode === 429 ||
+            statusCode === 503 ||
+            errorCode === 429 ||
+            errorCode === 503 ||
+            data.error?.status === "RESOURCE_EXHAUSTED" ||
+            data.error?.status === "UNAVAILABLE";
+
+          const isNotFound =
+            statusCode === 404 ||
+            errorCode === 404 ||
+            data.error?.status === "NOT_FOUND";
+
+          // If 503 or 429 on gemini-3.0-flash and first attempt, wait 1.5s and retry once
+          if (isRateLimitOrUnavailable && attempt < maxAttempts) {
+            console.warn(
+              `Model ${model} returned ${statusCode} (${data.error?.status || "busy"}), retrying in 1.5s (attempt ${attempt}/${maxAttempts})...`
+            );
+            await delay(1500);
             continue;
           }
-        }
 
-        response = res;
-        result = data;
-        usedModel = model;
-        break;
-      } catch (fetchErr: any) {
-        console.warn(`Attempt with ${model} failed:`, fetchErr?.message);
-        if (i < modelsToTry.length - 1) {
-          continue;
+          // If 404 (not found) or persistent 503/429, fall back to next model in sequence
+          if (isNotFound || isRateLimitOrUnavailable) {
+            console.warn(
+              `Model ${model} returned ${statusCode} (${data.error?.status || "error"}), falling back to next available model...`
+            );
+            if (i < modelsToTry.length - 1) {
+              break; // Break inner loop to try next model
+            }
+          }
+
+          response = res;
+          result = data;
+          usedModel = model;
+
+          // If response is successful, break both loops
+          if (res.ok && !data.error) {
+            break;
+          }
+        } catch (fetchErr: any) {
+          console.warn(`Attempt ${attempt} with ${model} failed:`, fetchErr?.message);
+          if (attempt < maxAttempts) {
+            await delay(1500);
+            continue;
+          }
+          if (i < modelsToTry.length - 1) {
+            break; // Break inner loop to try next model
+          }
+          throw fetchErr;
         }
-        throw fetchErr;
+      }
+
+      // If we got a successful response from this model, stop trying further fallbacks
+      if (response && response.ok && !result?.error) {
+        break;
       }
     }
 
