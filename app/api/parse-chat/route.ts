@@ -45,26 +45,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!Array.isArray(members) || members.length === 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "At least one group member is required to map expenses.",
-        },
-        { status: 400 }
-      );
-    }
+    const hasExistingMembers = Array.isArray(members) && members.length > 0;
 
-    const membersListStr = members
-      .map((m) => `- ID: "${m.id}", Name: "${m.name}"`)
-      .join("\n");
+    let membersContext = "";
+    if (hasExistingMembers) {
+      const membersListStr = members
+        .map((m) => `- ID: "${m.id}", Name: "${m.name}"`)
+        .join("\n");
+      membersContext = `Registered Roommates in this group:\n${membersListStr}\n\nMatch "paidById" and "splitDetails" keys to these exact registered IDs.`;
+    } else {
+      membersContext = `No registered roommates exist yet in this group.
+You MUST FIRST identify and extract all unique roommate names mentioned as message senders (e.g. from "[21/11/24, 11:15 PM] Veer:") or explicitly mentioned participants/eaters (e.g. "Tanya", "Rohan", "Jiggi").
+Assign each a unique ID like "m-1", "m-2", "m-3", etc. and return them in the "discoveredMembers" array:
+[{ "id": "m-1", "name": "Veer" }, ...].
+Then use these EXACT generated IDs ("m-1", "m-2", etc.) for "paidById" and all keys in "splitDetails".`;
+    }
 
     const prompt = `You are an expert Indian hostel expense splitter AI.
 Your job is to read messy English, Hinglish (Hindi written in Roman script), or romanised Punjabi WhatsApp group messages and extract shared expenses.
 The text could be pasted raw lines or standard WhatsApp exported format like "[21/11/24, 11:15 PM] Name: message".
 
-Registered Roommates in this group:
-${membersListStr}
+${membersContext}
 
 Rules for Parsing:
 1. Identify all messages discussing spent money (e.g. food orders like Zomato/Swiggy, groceries/Blinkit/Instamart, auto/cab/uber/rapido, electricity/wifi/room rent, water jars, party/drinks).
@@ -72,7 +73,7 @@ Rules for Parsing:
    - "title": Clear concise title (e.g. "Zomato Biryani", "Room Electricity Bill", "Shared Auto from Metro").
    - "category": One of "Food", "Hostel", "Groceries", "Utilities", "Party", "Other".
    - "totalAmount": Exact amount paid in INR (positive number).
-   - "paidById": Match the payer to the exact member ID from the Registered Roommates list above. Look at message senders ("[date, time] Veer: ..."), or statements like "Rohan ne pay kiya tha" or "I paid" by sender. If unable to determine, pick the sender's member ID.
+   - "paidById": Match the payer to the exact member ID (either from Registered Roommates or discoveredMembers). Look at message senders ("[date, time] Veer: ..."), or statements like "Rohan ne pay kiya tha" or "I paid" by sender. If unable to determine, pick the sender's member ID.
    - "sourceLine": The original chat line or quote that describes this expense.
    - "confidence": "high" if payer, amount, and intent are clear; "medium" if reasonable deduction; "low" if ambiguous.
    - "splitType": "equal" if split evenly among everyone or remaining active members, or "unequal" if specific shares/exclusions apply.
@@ -82,19 +83,22 @@ Rules for Parsing:
      - Divide totalAmount equally among ONLY the eligible participating roommates.
      - The sum of all values in splitDetails MUST equal totalAmount exactly. Adjust the last cent/rupee rounding so sum === totalAmount.
 3. Ignore regular chit-chat, memes, jokes, and non-expense messages.
-4. If no financial transactions are found, return {"expenses": []}.
+4. If no financial transactions are found, return {"expenses": [], "discoveredMembers": []}.
 
 Respond ONLY with valid JSON using this exact schema:
 {
+  "discoveredMembers": [
+    { "id": "m-1", "name": "Veer" }
+  ],
   "expenses": [
     {
       "title": "Zomato Biryani",
       "category": "Food",
-      "paidById": "${members[0].id}",
+      "paidById": "m-1",
       "totalAmount": 1260,
       "splitType": "equal",
       "splitDetails": {
-        "${members[0].id}": 420
+        "m-1": 420
       },
       "confidence": "high",
       "sourceLine": "Bhai Zomato se Behrouz Biryani order kiya tha..."
@@ -113,7 +117,12 @@ Respond ONLY with valid JSON using this exact schema:
       },
     };
 
-    const modelsToTry = ["gemini-3.0-flash", "gemini-3-flash-preview"];
+    const modelsToTry = [
+      "gemini-3.0-flash",
+      "gemini-3-flash-preview",
+      "gemini-2.5-flash-lite",
+      "gemini-2.0-flash",
+    ];
     let response: Response | null = null;
     let result: any = null;
     let usedModel = "";
@@ -177,7 +186,10 @@ Respond ONLY with valid JSON using this exact schema:
       );
     }
 
-    let parsedData: { expenses: ParsedExpense[] };
+    let parsedData: {
+      expenses: ParsedExpense[];
+      discoveredMembers?: Array<{ id: string; name: string }>;
+    };
     try {
       parsedData = JSON.parse(candidateText);
     } catch (parseErr) {
@@ -191,6 +203,19 @@ Respond ONLY with valid JSON using this exact schema:
       );
     }
 
+    const rawDiscovered: MemberInput[] = Array.isArray(parsedData.discoveredMembers)
+      ? parsedData.discoveredMembers.map((dm: any, i: number) => ({
+          id: String(dm.id || `m-${i + 1}`),
+          name: String(dm.name || `Roommate ${i + 1}`).trim(),
+        }))
+      : [];
+
+    const effectiveMembers: MemberInput[] = hasExistingMembers
+      ? members
+      : rawDiscovered.length > 0
+      ? rawDiscovered
+      : [{ id: "m-1", name: "Roommate 1" }];
+
     const rawExpenses = Array.isArray(parsedData.expenses)
       ? parsedData.expenses
       : [];
@@ -199,18 +224,18 @@ Respond ONLY with valid JSON using this exact schema:
     const sanitizedExpenses = rawExpenses.map((exp, idx) => {
       const totalAmount = Math.max(0, Number(exp.totalAmount) || 0);
 
-      // Validate payer exists in members list; fallback to first member
-      const payerId = members.some((m) => m.id === exp.paidById)
+      // Validate payer exists in effectiveMembers list; fallback to first member
+      const payerId = effectiveMembers.some((m) => m.id === exp.paidById)
         ? exp.paidById
-        : members[0].id;
+        : effectiveMembers[0].id;
 
       // Ensure every member has an entry in splitDetails
       const splitDetails: Record<string, number> = {};
       let sumSplits = 0;
       let nonZeroCount = 0;
-      let lastActiveMemberId = members[0].id;
+      let lastActiveMemberId = effectiveMembers[0].id;
 
-      members.forEach((m) => {
+      effectiveMembers.forEach((m) => {
         const val = Number(exp.splitDetails?.[m.id]) || 0;
         const roundedVal = Math.round(val * 100) / 100;
         splitDetails[m.id] = roundedVal;
@@ -222,11 +247,11 @@ Respond ONLY with valid JSON using this exact schema:
       });
 
       // If all splitDetails are 0 or empty, split equally across all members
-      if (nonZeroCount === 0 && members.length > 0 && totalAmount > 0) {
-        const perPerson = Math.round((totalAmount / members.length) * 100) / 100;
+      if (nonZeroCount === 0 && effectiveMembers.length > 0 && totalAmount > 0) {
+        const perPerson = Math.round((totalAmount / effectiveMembers.length) * 100) / 100;
         let runningSum = 0;
-        members.forEach((m, mIdx) => {
-          if (mIdx === members.length - 1) {
+        effectiveMembers.forEach((m, mIdx) => {
+          if (mIdx === effectiveMembers.length - 1) {
             splitDetails[m.id] = Math.round((totalAmount - runningSum) * 100) / 100;
           } else {
             splitDetails[m.id] = perPerson;
@@ -261,6 +286,7 @@ Respond ONLY with valid JSON using this exact schema:
     return NextResponse.json({
       success: true,
       modelUsed: usedModel,
+      discoveredMembers: hasExistingMembers ? [] : rawDiscovered,
       expenses: sanitizedExpenses,
     });
   } catch (err: any) {

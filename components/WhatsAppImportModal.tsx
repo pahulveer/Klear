@@ -43,12 +43,13 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { members, addExpense, roomName } = useLedger();
+  const { members, importBatchExpensesAndMembers, roomName } = useLedger();
 
   const [chatText, setChatText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [extractedExpenses, setExtractedExpenses] = useState<ExtractedExpense[]>([]);
+  const [discoveredMembers, setDiscoveredMembers] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [step, setStep] = useState<"input" | "preview">("input");
 
@@ -62,11 +63,6 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
   const handleExtract = async () => {
     if (!chatText.trim()) {
       setErrorMessage("Please paste some WhatsApp messages or click 'Try Sample Hinglish Chat'.");
-      return;
-    }
-
-    if (members.length === 0) {
-      setErrorMessage("Please add at least one roommate to your group first so expenses can be attributed.");
       return;
     }
 
@@ -93,6 +89,12 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
       if (expenses.length === 0) {
         setErrorMessage("No financial transactions or split expenses found in this chat text. Try pasting a different message!");
         return;
+      }
+
+      if (Array.isArray(data.discoveredMembers) && data.discoveredMembers.length > 0) {
+        setDiscoveredMembers(data.discoveredMembers);
+      } else {
+        setDiscoveredMembers([]);
       }
 
       setExtractedExpenses(expenses);
@@ -140,18 +142,21 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
 
     const todayStr = new Date().toISOString().split("T")[0];
 
-    toAdd.forEach((exp) => {
-      addExpense({
-        title: exp.title,
-        totalAmount: exp.totalAmount,
-        paidById: exp.paidById,
-        date: todayStr,
-        category: exp.category,
-        splitMode: exp.splitType === "equal" ? "equal" : "unequal",
-        splitDetails: exp.splitDetails,
-        note: `Imported from WhatsApp: "${exp.sourceLine.slice(0, 80)}"`,
-      });
-    });
+    const expensesToAdd = toAdd.map((exp) => ({
+      title: exp.title,
+      totalAmount: exp.totalAmount,
+      paidById: exp.paidById,
+      date: todayStr,
+      category: exp.category,
+      splitMode: (exp.splitType === "equal" ? "equal" : "unequal") as "equal" | "unequal",
+      splitDetails: exp.splitDetails,
+      note: `Imported from WhatsApp: "${exp.sourceLine.slice(0, 80)}"`,
+    }));
+
+    importBatchExpensesAndMembers(
+      expensesToAdd,
+      members.length === 0 ? discoveredMembers : undefined
+    );
 
     try {
       confetti({
@@ -173,6 +178,7 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
     setChatText("");
     setErrorMessage(null);
     setExtractedExpenses([]);
+    setDiscoveredMembers([]);
     setSelectedIds([]);
     setStep("input");
   };
@@ -262,6 +268,17 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
 
           {step === "preview" && (
             <div className="space-y-4">
+              {/* Auto-Discovered Roommates Banner if group was empty */}
+              {members.length === 0 && discoveredMembers.length > 0 && (
+                <div className="bg-[#2DD4BF]/20 border-2 border-black rounded-xl p-3 shadow-[2px_2px_0_0_#000] flex items-center gap-2.5 text-teal-950 text-xs font-bold">
+                  <Sparkles className="w-4 h-4 text-teal-800 shrink-0" />
+                  <span>
+                    <strong className="font-black">Auto-Discovered Roommates: </strong>
+                    {discoveredMembers.map((m) => m.name).join(", ")} (will be added to your group ledger automatically)
+                  </span>
+                </div>
+              )}
+
               {/* Preview Bar */}
               <div className="flex items-center justify-between gap-2 bg-[#FAF8F5] border-2 border-black rounded-xl p-3 shadow-[2px_2px_0_0_#000]">
                 <div>
@@ -295,7 +312,8 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
               <div className="space-y-3">
                 {extractedExpenses.map((exp) => {
                   const isSelected = selectedIds.includes(exp.id);
-                  const payer = members.find((m) => m.id === exp.paidById) || members[0];
+                  const displayMembers = members.length > 0 ? members : discoveredMembers;
+                  const payer = displayMembers.find((m) => m.id === exp.paidById) || displayMembers[0];
 
                   const confidenceColor =
                     exp.confidence === "high"
@@ -369,7 +387,7 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
                           SPLIT BREAKDOWN:
                         </div>
                         <div className="flex items-center gap-2 flex-wrap text-xs font-mono font-bold">
-                          {members.map((m) => {
+                          {displayMembers.map((m) => {
                             const share = exp.splitDetails[m.id] || 0;
                             const isExcluded = share === 0;
 

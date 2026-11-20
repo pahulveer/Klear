@@ -137,6 +137,10 @@ interface LedgerContextType {
   deleteTripPlanItem: (id: string) => void;
   toggleFlakedMember: (memberId: string) => void;
   convertPlanItemToExpense: (itemId: string, payerId?: string) => void;
+  importBatchExpensesAndMembers: (
+    newExpenses: Omit<Expense, "id">[],
+    newMembers?: Array<{ id: string; name: string; upiId?: string }>
+  ) => void;
 }
 
 const LedgerContext = createContext<LedgerContextType | undefined>(undefined);
@@ -549,6 +553,42 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
     });
   };
 
+  const importBatchExpensesAndMembers = (
+    newExpensesData: Omit<Expense, "id">[],
+    newMembersData?: Array<{ id: string; name: string; upiId?: string }>
+  ) => {
+    let currentMembers = [...members];
+    if (newMembersData && newMembersData.length > 0 && currentMembers.length === 0) {
+      currentMembers = newMembersData.map((m, idx) => {
+        const trimmed = m.name.trim();
+        const initials = trimmed
+          .split(" ")
+          .map((part) => part[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase();
+        const colorIndex = idx % AVATAR_COLORS.length;
+        const defaultUpi = m.upiId || `${trimmed.toLowerCase().replace(/\s+/g, ".")}@upi`;
+        return {
+          id: m.id || `m-${Date.now()}-${idx}`,
+          name: idx === 0 ? `${trimmed} (You)` : trimmed,
+          upiId: defaultUpi,
+          avatarBg: AVATAR_COLORS[colorIndex],
+          initials,
+          isYou: idx === 0,
+        };
+      });
+      setMembers(currentMembers);
+    }
+
+    const createdExpenses: Expense[] = newExpensesData.map((exp, idx) => ({
+      ...exp,
+      id: `exp-${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
+    }));
+
+    setExpenses((prev) => [...createdExpenses, ...prev]);
+  };
+
   const loadSampleData = () => {
     setRoomNameState("Room 402 Squad");
     setMembers(SAMPLE_MEMBERS);
@@ -672,6 +712,7 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
         deleteTripPlanItem,
         toggleFlakedMember,
         convertPlanItemToExpense,
+        importBatchExpensesAndMembers,
       }}
     >
       {children}

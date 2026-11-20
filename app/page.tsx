@@ -200,6 +200,10 @@ export default function DashboardPage() {
           isOpen={isRoommateModalOpen}
           onClose={() => setIsRoommateModalOpen(false)}
         />
+        <WhatsAppImportModal
+          isOpen={isWhatsAppModalOpen}
+          onClose={() => setIsWhatsAppModalOpen(false)}
+        />
       </div>
     );
   }
