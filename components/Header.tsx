@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useLedger } from "@/context/LedgerContext";
 import {
-  Bell,
   RotateCcw,
   Trash2,
   CheckCircle2,
@@ -66,8 +65,6 @@ export const Header: React.FC = () => {
       triggerToast("Ledger reset to empty state!");
     }
   };
-
-  const youMember = members.find((m) => m.isYou) || members[0];
 
   return (
     <>
@@ -162,25 +159,6 @@ export const Header: React.FC = () => {
             <Trash2 className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Reset</span>
           </button>
-
-          {/* Bell Notification */}
-          <button className="hidden md:flex relative w-8 h-8 items-center justify-center bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] hover:bg-zinc-50">
-            <Bell className="w-4 h-4 text-black" />
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#FF7A00] text-black text-[10px] font-black rounded-full border border-black flex items-center justify-center">
-              {members.length > 0 ? "3" : "0"}
-            </span>
-          </button>
-
-          {/* User Profile Avatar */}
-          <div
-            onClick={() => setIsRoommateModalOpen(true)}
-            title={youMember ? `${youMember.name} (Primary Roommate)` : "Add Roommates"}
-            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-lg border-2 border-black ${
-              youMember?.avatarBg || "bg-[#2DD4BF]"
-            } text-black font-black flex items-center justify-center shadow-[2px_2px_0_0_#000] cursor-pointer hover:rotate-6 transition-transform shrink-0`}
-          >
-            <span className="text-xs">{youMember?.initials || "ME"}</span>
-          </div>
         </div>
       </header>
 
