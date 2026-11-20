@@ -80,3 +80,14 @@ export interface TripPlan {
   paidMemberIds?: string[]; // IDs of members who have paid their share
 }
 
+export interface Group {
+  id: string;
+  name: string;
+  icon?: string;
+  members: Member[];
+  expenses: Expense[];
+  settledTransferIds: string[];
+  trips?: TripPlan[];
+  createdAt?: string;
+}
+

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { Member, Expense, SimplifiedTransfer, NetBalance, TripPlan, TripPlanItem } from "@/types/ledger";
+import { Member, Expense, SimplifiedTransfer, NetBalance, TripPlan, TripPlanItem, Group } from "@/types/ledger";
 import { SAMPLE_MEMBERS, SAMPLE_EXPENSES } from "./sampleData";
 import {
   calculateNetBalances,
@@ -141,11 +141,20 @@ interface LedgerContextType {
     newExpenses: Omit<Expense, "id">[],
     newMembers?: Array<{ id: string; name: string; upiId?: string }>
   ) => void;
+  groups: Group[];
+  activeGroupId: string;
+  activeGroup: Group | null;
+  switchGroup: (groupId: string) => void;
+  createGroup: (name: string, icon?: string) => string;
+  updateGroup: (groupId: string, updates: Partial<Group>) => void;
+  deleteGroup: (groupId: string) => void;
 }
 
 const LedgerContext = createContext<LedgerContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
+  GROUPS: "klear_groups_v1",
+  ACTIVE_GROUP_ID: "klear_active_group_id_v1",
   MEMBERS: "klear_members_v2",
   EXPENSES: "klear_expenses_v2",
   SETTLED: "klear_settled_v2",
@@ -174,7 +183,11 @@ const AVATAR_COLORS = [
 export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  // Start completely empty by default
+  // Multi-group state
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [activeGroupId, setActiveGroupId] = useState<string>("grp-1");
+
+  // Current active group ledger state
   const [members, setMembers] = useState<Member[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [settledTransferIds, setSettledTransferIds] = useState<string[]>([]);
@@ -184,10 +197,14 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isHydrated, setIsHydrated] = useState(false);
 
   const activeTrip = trips.find((t) => t.id === activeTripId) || trips[0] || null;
+  const activeGroup = groups.find((g) => g.id === activeGroupId) || groups[0] || null;
 
   // Load from LocalStorage (with backward-compatible fallback)
   useEffect(() => {
     try {
+      const savedGroups = localStorage.getItem(STORAGE_KEYS.GROUPS);
+      const savedActiveGroupId = localStorage.getItem(STORAGE_KEYS.ACTIVE_GROUP_ID);
+
       const savedMembers =
         localStorage.getItem(STORAGE_KEYS.MEMBERS) ||
         localStorage.getItem(STORAGE_KEYS.OLD_MEMBERS);
@@ -208,30 +225,59 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
         localStorage.getItem(STORAGE_KEYS.TRIP_PLAN) ||
         localStorage.getItem(STORAGE_KEYS.OLD_TRIP_PLAN);
 
-      if (savedMembers) {
-        setMembers(JSON.parse(savedMembers));
-      }
-      if (savedExpenses) {
-        setExpenses(JSON.parse(savedExpenses));
-      }
-      if (savedSettled) {
-        setSettledTransferIds(JSON.parse(savedSettled));
-      }
-      if (savedRoomName) {
-        setRoomNameState(savedRoomName);
-      }
-      if (savedTrips) {
-        const parsed = JSON.parse(savedTrips);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setTrips(parsed);
-          setActiveTripId(savedActiveTrip || parsed[0].id);
+      let initialGroups: Group[] = [];
+      if (savedGroups) {
+        try {
+          const parsed = JSON.parse(savedGroups);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            initialGroups = parsed;
+          }
+        } catch (e) {
+          console.error("Failed to parse saved groups:", e);
         }
-      } else if (savedTripPlan) {
-        const parsed = JSON.parse(savedTripPlan);
-        if (parsed) {
-          setTrips([parsed]);
-          setActiveTripId(parsed.id);
+      }
+
+      if (initialGroups.length === 0) {
+        const parsedMembers = savedMembers ? JSON.parse(savedMembers) : [];
+        const parsedExpenses = savedExpenses ? JSON.parse(savedExpenses) : [];
+        const parsedSettled = savedSettled ? JSON.parse(savedSettled) : [];
+        let parsedTrips: TripPlan[] = [];
+        if (savedTrips) {
+          try {
+            parsedTrips = JSON.parse(savedTrips);
+          } catch (e) {}
+        } else if (savedTripPlan) {
+          try {
+            parsedTrips = [JSON.parse(savedTripPlan)];
+          } catch (e) {}
         }
+
+        const defaultGroup: Group = {
+          id: "grp-1",
+          name: savedRoomName || "My Hostel Group",
+          icon: "🛏️",
+          members: parsedMembers,
+          expenses: parsedExpenses,
+          settledTransferIds: parsedSettled,
+          trips: parsedTrips,
+          createdAt: new Date().toISOString(),
+        };
+        initialGroups = [defaultGroup];
+      }
+
+      setGroups(initialGroups);
+
+      const targetGroup =
+        initialGroups.find((g) => g.id === savedActiveGroupId) || initialGroups[0];
+
+      setActiveGroupId(targetGroup.id);
+      setRoomNameState(targetGroup.name);
+      setMembers(targetGroup.members || []);
+      setExpenses(targetGroup.expenses || []);
+      setSettledTransferIds(targetGroup.settledTransferIds || []);
+      setTrips(targetGroup.trips || []);
+      if (targetGroup.trips && targetGroup.trips.length > 0) {
+        setActiveTripId(savedActiveTrip || targetGroup.trips[0].id);
       }
     } catch (e) {
       console.error("Failed to load state from localStorage:", e);
@@ -240,10 +286,31 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
+  // Keep active group synchronized inside `groups`
+  useEffect(() => {
+    if (!isHydrated || !activeGroupId) return;
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.id === activeGroupId
+          ? {
+              ...g,
+              name: roomName,
+              members,
+              expenses,
+              settledTransferIds,
+              trips,
+            }
+          : g
+      )
+    );
+  }, [members, expenses, settledTransferIds, roomName, trips, activeGroupId, isHydrated]);
+
   // Save to LocalStorage
   useEffect(() => {
     if (!isHydrated) return;
     try {
+      localStorage.setItem(STORAGE_KEYS.GROUPS, JSON.stringify(groups));
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_GROUP_ID, activeGroupId);
       localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(members));
       localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
       localStorage.setItem(
@@ -265,11 +332,123 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (e) {
       console.error("Failed to save state to localStorage:", e);
     }
-  }, [members, expenses, settledTransferIds, roomName, trips, activeTripId, activeTrip, isHydrated]);
+  }, [groups, activeGroupId, members, expenses, settledTransferIds, roomName, trips, activeTripId, activeTrip, isHydrated]);
+
+  // Group Management Methods
+  const switchGroup = (targetGroupId: string) => {
+    if (targetGroupId === activeGroupId) return;
+    const targetGroup = groups.find((g) => g.id === targetGroupId);
+    if (!targetGroup) return;
+
+    // 1. Flush current group state into groups list
+    const updatedGroups = groups.map((g) =>
+      g.id === activeGroupId
+        ? {
+            ...g,
+            name: roomName,
+            members,
+            expenses,
+            settledTransferIds,
+            trips,
+          }
+        : g
+    );
+    setGroups(updatedGroups);
+
+    // 2. Switch to target
+    setActiveGroupId(targetGroup.id);
+    setRoomNameState(targetGroup.name);
+    setMembers(targetGroup.members || []);
+    setExpenses(targetGroup.expenses || []);
+    setSettledTransferIds(targetGroup.settledTransferIds || []);
+    setTrips(targetGroup.trips || []);
+    if (targetGroup.trips && targetGroup.trips.length > 0) {
+      setActiveTripId(targetGroup.trips[0].id);
+    } else {
+      setActiveTripId("");
+    }
+  };
+
+  const createGroup = (name: string, icon: string = "👥"): string => {
+    const cleanName = name.trim() || "New Friend Group";
+    const newId = `grp-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const newGroup: Group = {
+      id: newId,
+      name: cleanName,
+      icon,
+      members: [],
+      expenses: [],
+      settledTransferIds: [],
+      trips: [],
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedGroups = [
+      ...groups.map((g) =>
+        g.id === activeGroupId
+          ? {
+              ...g,
+              name: roomName,
+              members,
+              expenses,
+              settledTransferIds,
+              trips,
+            }
+          : g
+      ),
+      newGroup,
+    ];
+    setGroups(updatedGroups);
+
+    // Switch to new group with blank, isolated state
+    setActiveGroupId(newId);
+    setRoomNameState(cleanName);
+    setMembers([]);
+    setExpenses([]);
+    setSettledTransferIds([]);
+    setTrips([]);
+    setActiveTripId("");
+
+    return newId;
+  };
+
+  const deleteGroup = (groupId: string) => {
+    if (groups.length <= 1) {
+      alert("You need at least one group in Klear.");
+      return;
+    }
+    const remaining = groups.filter((g) => g.id !== groupId);
+    setGroups(remaining);
+
+    if (activeGroupId === groupId) {
+      const nextGroup = remaining[0];
+      setActiveGroupId(nextGroup.id);
+      setRoomNameState(nextGroup.name);
+      setMembers(nextGroup.members || []);
+      setExpenses(nextGroup.expenses || []);
+      setSettledTransferIds(nextGroup.settledTransferIds || []);
+      setTrips(nextGroup.trips || []);
+      setActiveTripId(nextGroup.trips?.[0]?.id || "");
+    }
+  };
+
+  const updateGroup = (groupId: string, updates: Partial<Group>) => {
+    setGroups((prev) =>
+      prev.map((g) => (g.id === groupId ? { ...g, ...updates } : g))
+    );
+    if (groupId === activeGroupId) {
+      if (updates.name !== undefined) {
+        setRoomNameState(updates.name.trim() || "My Hostel Group");
+      }
+    }
+  };
 
   const setRoomName = (name: string) => {
     const clean = name.trim() || "My Hostel Group";
     setRoomNameState(clean);
+    setGroups((prev) =>
+      prev.map((g) => (g.id === activeGroupId ? { ...g, name: clean } : g))
+    );
   };
 
   const addMember = ({
@@ -590,49 +769,54 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const loadSampleData = () => {
-    setRoomNameState("Room 402 Squad");
+    const sampleName = "Room 402 Squad";
+    setRoomNameState(sampleName);
     setMembers(SAMPLE_MEMBERS);
     setExpenses(SAMPLE_EXPENSES);
     setSettledTransferIds([]);
     setTrips(SAMPLE_TRIPS);
     setActiveTripId(SAMPLE_TRIP_PLAN.id);
-    try {
-      localStorage.setItem(STORAGE_KEYS.ROOM_NAME, "Room 402 Squad");
-      localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify(SAMPLE_MEMBERS));
-      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(SAMPLE_EXPENSES));
-      localStorage.setItem(STORAGE_KEYS.SETTLED, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.TRIPS, JSON.stringify(SAMPLE_TRIPS));
-      localStorage.setItem(STORAGE_KEYS.ACTIVE_TRIP, SAMPLE_TRIP_PLAN.id);
-      localStorage.setItem(STORAGE_KEYS.TRIP_PLAN, JSON.stringify(SAMPLE_TRIP_PLAN));
-    } catch (e) {
-      console.error(e);
-    }
+
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.id === activeGroupId
+          ? {
+              ...g,
+              name: sampleName,
+              icon: "🛏️",
+              members: SAMPLE_MEMBERS,
+              expenses: SAMPLE_EXPENSES,
+              settledTransferIds: [],
+              trips: SAMPLE_TRIPS,
+            }
+          : g
+      )
+    );
   };
 
   const clearAllData = () => {
-    setRoomNameState("My Hostel Group");
+    const defaultName = "My Hostel Group";
+    setRoomNameState(defaultName);
     setMembers([]);
     setExpenses([]);
     setSettledTransferIds([]);
     setTrips([]);
     setActiveTripId("");
-    try {
-      localStorage.setItem(STORAGE_KEYS.ROOM_NAME, "My Hostel Group");
-      localStorage.setItem(STORAGE_KEYS.MEMBERS, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
-      localStorage.setItem(STORAGE_KEYS.SETTLED, JSON.stringify([]));
-      localStorage.removeItem(STORAGE_KEYS.TRIPS);
-      localStorage.removeItem(STORAGE_KEYS.ACTIVE_TRIP);
-      localStorage.removeItem(STORAGE_KEYS.TRIP_PLAN);
-      // Clean legacy keys too
-      localStorage.removeItem(STORAGE_KEYS.OLD_ROOM_NAME);
-      localStorage.removeItem(STORAGE_KEYS.OLD_MEMBERS);
-      localStorage.removeItem(STORAGE_KEYS.OLD_EXPENSES);
-      localStorage.removeItem(STORAGE_KEYS.OLD_SETTLED);
-      localStorage.removeItem(STORAGE_KEYS.OLD_TRIP_PLAN);
-    } catch (e) {
-      console.error(e);
-    }
+
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.id === activeGroupId
+          ? {
+              ...g,
+              name: defaultName,
+              members: [],
+              expenses: [],
+              settledTransferIds: [],
+              trips: [],
+            }
+          : g
+      )
+    );
   };
 
   // Live calculations
@@ -713,6 +897,13 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
         toggleFlakedMember,
         convertPlanItemToExpense,
         importBatchExpensesAndMembers,
+        groups,
+        activeGroupId,
+        activeGroup,
+        switchGroup,
+        createGroup,
+        updateGroup,
+        deleteGroup,
       }}
     >
       {children}
