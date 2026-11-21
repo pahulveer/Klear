@@ -142,22 +142,8 @@ export default function SettlePage() {
     document.body.removeChild(link);
   };
 
-  // HYDRATION SKELETON PLACEHOLDER
-  if (!isHydrated) {
-    return (
-      <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6 animate-pulse p-2">
-        <div className="h-8 w-48 bg-zinc-200 border-2 border-black rounded-lg" />
-        <div className="h-28 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0_0_#000]" />
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 h-96 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0_0_#000]" />
-          <div className="lg:col-span-4 h-96 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0_0_#000]" />
-        </div>
-      </div>
-    );
-  }
-
   // EMPTY STATE WHEN NO MEMBERS
-  if (members.length === 0) {
+  if (isHydrated && members.length === 0) {
     return (
       <div className="p-4 md:p-12 max-w-3xl mx-auto space-y-6">
         <div className="bg-white border-2 border-black rounded-3xl p-8 md:p-12 shadow-[6px_6px_0_0_#000] text-center space-y-5">

@@ -153,56 +153,8 @@ export default function DashboardPage() {
     }
   };
 
-  // HYDRATION SKELETON PLACEHOLDER (Eliminates layout shift & empty state flash)
-  if (!isHydrated) {
-    return (
-      <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6 animate-pulse">
-        {/* Top Header Row Skeleton */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-2">
-            <div className="h-8 w-48 bg-zinc-200 border-2 border-black rounded-lg" />
-            <div className="h-4 w-64 bg-zinc-200 border-2 border-black rounded-lg" />
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-36 bg-zinc-200 border-2 border-black rounded-xl shadow-[3px_3px_0_0_#000]" />
-            <div className="h-10 w-32 bg-zinc-200 border-2 border-black rounded-xl shadow-[3px_3px_0_0_#000]" />
-          </div>
-        </div>
-
-        {/* 3 Metric Cards Skeleton */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="h-32 bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
-            <div className="h-3 w-28 bg-zinc-200 rounded" />
-            <div className="h-8 w-36 bg-zinc-300 rounded" />
-          </div>
-          <div className="h-32 bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
-            <div className="h-3 w-28 bg-zinc-200 rounded" />
-            <div className="h-8 w-36 bg-zinc-300 rounded" />
-          </div>
-          <div className="h-32 bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
-            <div className="h-3 w-28 bg-zinc-200 rounded" />
-            <div className="h-8 w-36 bg-zinc-300 rounded" />
-          </div>
-        </div>
-
-        {/* Main Content Area Skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 h-96 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0_0_#000] p-6 space-y-4">
-            <div className="h-6 w-40 bg-zinc-200 rounded" />
-            <div className="h-20 bg-[#FAF8F5] border border-black rounded-xl" />
-            <div className="h-20 bg-[#FAF8F5] border border-black rounded-xl" />
-          </div>
-          <div className="lg:col-span-4 h-96 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0_0_#000] p-6 space-y-4">
-            <div className="h-6 w-32 bg-zinc-200 rounded" />
-            <div className="h-24 bg-[#FAF8F5] border border-black rounded-xl" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // EMPTY STATE (When no roommates are added yet)
-  if (members.length === 0) {
+  // EMPTY STATE (Only when loaded and no roommates exist yet)
+  if (isHydrated && members.length === 0) {
     return (
       <div className="p-4 md:p-12 max-w-4xl mx-auto space-y-8">
         <div className="bg-white border-2 border-black rounded-3xl p-8 md:p-12 shadow-[6px_6px_0_0_#000] text-center space-y-6">
@@ -322,7 +274,11 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <div className="text-xs font-bold text-black/80">
-                    {members.length} Active {members.length === 1 ? "Roommate" : "Roommates"} • Hostel Pool
+                    {!isHydrated ? (
+                      <span className="inline-block w-28 h-3.5 bg-black/20 rounded animate-pulse" />
+                    ) : (
+                      `${members.length} Active ${members.length === 1 ? "Roommate" : "Roommates"} • Hostel Pool`
+                    )}
                   </div>
                 </div>
               </div>
@@ -343,10 +299,18 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-baseline gap-3 mt-1">
                 <span className="text-4xl md:text-5xl font-black font-mono tracking-tight">
-                  <AnimatedCurrency value={totalPoolSpent} />
+                  {!isHydrated ? (
+                    <span className="inline-block w-36 h-10 bg-black/20 rounded animate-pulse" />
+                  ) : (
+                    <AnimatedCurrency value={totalPoolSpent} />
+                  )}
                 </span>
                 <span className="text-xs font-black bg-white border-2 border-black px-2 py-0.5 rounded-full shadow-[1.5px_1.5px_0_0_#000]">
-                  {expenses.length} {expenses.length === 1 ? "Expense" : "Expenses"}
+                  {!isHydrated ? (
+                    <span className="inline-block w-16 h-3 bg-zinc-200 rounded animate-pulse" />
+                  ) : (
+                    `${expenses.length} ${expenses.length === 1 ? "Expense" : "Expenses"}`
+                  )}
                 </span>
               </div>
             </div>
@@ -406,7 +370,11 @@ export default function DashboardPage() {
               </div>
               <div className="my-2">
                 <div className="text-3xl font-black font-mono">
-                  {members.length}
+                  {!isHydrated ? (
+                    <span className="inline-block w-8 h-8 bg-zinc-200 rounded animate-pulse" />
+                  ) : (
+                    members.length
+                  )}
                 </div>
                 <div className="flex -space-x-2 mt-2">
                   {members.slice(0, 6).map((m) => (
@@ -432,7 +400,11 @@ export default function DashboardPage() {
               </div>
               <div className="my-2">
                 <div className="text-3xl font-black font-mono text-purple-950">
-                  {expenses.length}
+                  {!isHydrated ? (
+                    <span className="inline-block w-8 h-8 bg-purple-300 rounded animate-pulse" />
+                  ) : (
+                    expenses.length
+                  )}
                 </div>
                 <div className="text-[11px] font-bold text-purple-900 mt-1">
                   {expenses.length - settledTransferIds.length} Active • {settledTransferIds.length} Settled
@@ -450,7 +422,11 @@ export default function DashboardPage() {
               </div>
               <div className="my-2">
                 <div className="text-3xl font-black font-mono text-teal-950">
-                  {pendingTransfers.length}
+                  {!isHydrated ? (
+                    <span className="inline-block w-8 h-8 bg-teal-300 rounded animate-pulse" />
+                  ) : (
+                    pendingTransfers.length
+                  )}
                 </div>
                 <div className="text-[11px] font-bold text-teal-900 mt-1">
                   Simplified Graph
@@ -537,7 +513,12 @@ export default function DashboardPage() {
 
             {/* Expenses List */}
             <div className="space-y-3">
-              {filteredExpenses.length === 0 ? (
+              {!isHydrated ? (
+                <div className="space-y-3 animate-pulse">
+                  <div className="h-20 bg-white border-2 border-black rounded-2xl shadow-[3px_3px_0_0_#000]" />
+                  <div className="h-20 bg-white border-2 border-black rounded-2xl shadow-[3px_3px_0_0_#000]" />
+                </div>
+              ) : filteredExpenses.length === 0 ? (
                 <div className="bg-white border-2 border-dashed border-black rounded-2xl p-8 text-center shadow-[3px_3px_0_0_#000] space-y-3">
                   <div className="text-sm font-black text-black">
                     No expenses recorded in {roomName} yet.
@@ -559,7 +540,7 @@ export default function DashboardPage() {
                       className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]"
                     >
                       <RotateCw className="w-3.5 h-3.5" />
-                      <span>Load Room 402 Sample Data</span>
+                      <span>Load Sample Data</span>
                     </button>
                   </div>
                 </div>
@@ -682,7 +663,12 @@ export default function DashboardPage() {
 
             {/* Matrix Items */}
             <div className="space-y-2.5 pt-1">
-              {simplifiedTransfers.length === 0 ? (
+              {!isHydrated ? (
+                <div className="space-y-2.5 animate-pulse">
+                  <div className="h-16 bg-[#FAF8F5] border border-black rounded-xl" />
+                  <div className="h-16 bg-[#FAF8F5] border border-black rounded-xl" />
+                </div>
+              ) : simplifiedTransfers.length === 0 ? (
                 <div className="p-4 bg-[#FAF8F5] border border-black rounded-xl text-center text-xs font-bold text-zinc-500">
                   No debts to settle in {roomName}. All tabs are zero-sum balanced!
                 </div>

@@ -19,7 +19,7 @@ import { RoommateModal } from "./RoommateModal";
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
-  const { totalPoolSpent, roomName, members } = useLedger();
+  const { totalPoolSpent, roomName, members, isHydrated } = useLedger();
   const [isRoommateModalOpen, setIsRoommateModalOpen] = useState(false);
 
   const navItems = [
@@ -94,7 +94,11 @@ export const Sidebar: React.FC = () => {
                   <span>Roommates</span>
                 </div>
                 <span className="text-[10px] font-black px-1.5 py-0.5 rounded border border-black bg-[#2DD4BF] text-black">
-                  {members.length}
+                  {!isHydrated ? (
+                    <span className="inline-block w-2.5 h-2.5 bg-black/40 rounded-full animate-pulse" />
+                  ) : (
+                    members.length
+                  )}
                 </span>
               </button>
             </nav>
@@ -129,7 +133,11 @@ export const Sidebar: React.FC = () => {
               <Coins className="w-3.5 h-3.5 text-black" />
             </div>
             <div className="text-xl font-black font-mono tracking-tight text-black mt-1">
-              {formatINR(totalPoolSpent)} Total
+              {!isHydrated ? (
+                <div className="h-6 w-28 bg-teal-400/80 border border-black/30 rounded animate-pulse my-0.5" />
+              ) : (
+                `${formatINR(totalPoolSpent)} Total`
+              )}
             </div>
             <div className="text-[10px] font-bold text-black/70 mt-0.5 truncate">
               {roomName} Pool

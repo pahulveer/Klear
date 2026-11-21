@@ -370,40 +370,48 @@ export const Header: React.FC = () => {
         </div>
 
         {/* Right Actions: Test Helpers & User Avatar */}
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {/* Roommates Directory Button */}
-          <button
-            onClick={() => setIsRoommateModalOpen(true)}
-            title="Manage Roommates"
-            className="inline-flex items-center gap-1 text-xs font-black bg-[#FAF8F5] text-black border-2 border-black rounded-lg p-1.5 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] hover:bg-amber-100 hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Roommates</span>
-            <span className="bg-black text-white text-[10px] px-1.5 py-0.2 rounded-full">
-              {members.length}
-            </span>
-          </button>
+        {!isHydrated ? (
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 animate-pulse">
+            <div className="h-[31px] sm:h-[34px] w-8 sm:w-28 bg-[#FAF8F5] border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000]" />
+            <div className="h-[31px] sm:h-[34px] w-8 sm:w-36 bg-[#2DD4BF] border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000]" />
+            <div className="h-[31px] sm:h-[34px] w-8 sm:w-16 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000]" />
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Roommates Directory Button */}
+            <button
+              onClick={() => setIsRoommateModalOpen(true)}
+              title="Manage Roommates"
+              className="inline-flex items-center gap-1 text-xs font-black bg-[#FAF8F5] text-black border-2 border-black rounded-lg p-1.5 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] hover:bg-amber-100 hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Roommates</span>
+              <span className="bg-black text-white text-[10px] px-1.5 py-0.2 rounded-full">
+                {members.length}
+              </span>
+            </button>
 
-          {/* Load Sample Data Button (Compact icon on mobile, text on sm+) */}
-          <button
-            onClick={handleResetSample}
-            title="Load realistic sample data"
-            className="inline-flex items-center gap-1 text-xs font-black bg-[#2DD4BF] text-black border-2 border-black rounded-lg p-1.5 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all whitespace-nowrap"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Load Sample Data</span>
-          </button>
+            {/* Load Sample Data Button (Compact icon on mobile, text on sm+) */}
+            <button
+              onClick={handleResetSample}
+              title="Load realistic sample data"
+              className="inline-flex items-center gap-1 text-xs font-black bg-[#2DD4BF] text-black border-2 border-black rounded-lg p-1.5 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all whitespace-nowrap"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Load Sample Data</span>
+            </button>
 
-          {/* Reset / Clear All Button (Compact icon on mobile, text on sm+) */}
-          <button
-            onClick={handleClear}
-            title="Wipe localStorage and reset all data to empty"
-            className="inline-flex items-center gap-1 text-xs font-bold bg-white text-zinc-700 hover:text-rose-700 hover:bg-rose-50 border-2 border-black rounded-lg p-1.5 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] transition-colors whitespace-nowrap"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Reset</span>
-          </button>
-        </div>
+            {/* Reset / Clear All Button (Compact icon on mobile, text on sm+) */}
+            <button
+              onClick={handleClear}
+              title="Wipe localStorage and reset all data to empty"
+              className="inline-flex items-center gap-1 text-xs font-bold bg-white text-zinc-700 hover:text-rose-700 hover:bg-rose-50 border-2 border-black rounded-lg p-1.5 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] transition-colors whitespace-nowrap"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Reset</span>
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Roommates Directory Modal */}
