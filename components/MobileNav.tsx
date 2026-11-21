@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Scale, Camera, Users, Plus, Compass } from "lucide-react";
+import { Home, Scale, Camera, Plus, Compass } from "lucide-react";
 
 export const MobileNav: React.FC = () => {
   const pathname = usePathname();
@@ -19,7 +19,7 @@ export const MobileNav: React.FC = () => {
     <div className="fixed bottom-3 left-3 right-3 z-50 md:hidden">
       <nav
         aria-label="Mobile navigation"
-        className="bg-white border-2 border-black rounded-2xl shadow-[0_4px_0_0_#000] p-1.5 flex items-center justify-around gap-1"
+        className="bg-white/95 backdrop-blur-md border-2 border-black rounded-2xl shadow-[0_4px_0_0_#000] p-1.5 flex items-center justify-around gap-1"
       >
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -44,10 +44,10 @@ export const MobileNav: React.FC = () => {
         <Link
           href="/add"
           aria-current={pathname === "/add" ? "page" : undefined}
-          className="flex items-center gap-1 bg-[#FF7A00] text-black font-black text-xs px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] active:translate-y-0.5"
+          className="flex items-center gap-1 bg-[#FF7A00] text-black font-black text-xs px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] active:translate-y-0.5 transition-transform"
         >
           <Plus className="w-4 h-4 stroke-[3]" />
-          <span>Add Bill</span>
+          <span>Add</span>
         </Link>
       </nav>
     </div>

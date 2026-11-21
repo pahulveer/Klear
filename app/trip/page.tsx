@@ -85,7 +85,7 @@ export default function TripPlannerPage() {
       setDays(tripPlan.days);
       setVibe(tripPlan.vibe);
     }
-  }, [tripPlan?.id, tripPlan?.destination]);
+  }, [tripPlan]);
 
   // Manual Add / Edit Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -105,7 +105,7 @@ export default function TripPlannerPage() {
   ];
 
   // Current active trip items & flakers
-  const items = tripPlan?.items || [];
+  const items = useMemo(() => tripPlan?.items || [], [tripPlan?.items]);
   const flakedIds = tripPlan?.flakedMemberIds || [];
 
   // Active (going) members

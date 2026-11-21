@@ -27,24 +27,28 @@ export const Sidebar: React.FC = () => {
       href: "/",
       icon: Receipt,
       active: pathname === "/",
+      badge: null,
     },
     {
       label: "Settle Up",
       href: "/settle",
       icon: Scale,
       active: pathname === "/settle",
+      badge: "Min Debt",
     },
     {
       label: "Add Expense",
       href: "/add",
       icon: Camera,
       active: pathname === "/add",
+      badge: "OCR",
     },
     {
       label: "Trip Planner",
       href: "/trip",
       icon: Compass,
       active: pathname === "/trip",
+      badge: "AI",
     },
   ];
 
@@ -52,12 +56,12 @@ export const Sidebar: React.FC = () => {
     <>
       <aside
         aria-label="Primary sidebar"
-        className="hidden md:flex flex-col w-64 bg-white border-r-2 border-black p-4 min-h-[calc(100vh-61px)] justify-between select-none"
+        className="hidden md:flex flex-col w-64 bg-white border-r-2 border-black p-4 min-h-[calc(100vh-65px)] justify-between select-none shrink-0"
       >
         {/* Top Navigation */}
         <div className="space-y-6">
           <div>
-            <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 px-2">
+            <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2.5 px-2">
               WORKSPACE
             </div>
             <nav aria-label="Workspace navigation" className="space-y-1.5">
@@ -78,6 +82,17 @@ export const Sidebar: React.FC = () => {
                       <Icon className="w-4 h-4 stroke-[2.5]" />
                       <span>{item.label}</span>
                     </div>
+                    {item.badge && (
+                      <span
+                        className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border border-black ${
+                          item.active
+                            ? "bg-white text-black"
+                            : "bg-[#FAF8F5] text-zinc-600"
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -92,7 +107,7 @@ export const Sidebar: React.FC = () => {
                   <Users className="w-4 h-4 stroke-[2.5]" />
                   <span>Roommates</span>
                 </div>
-                <span className="text-[10px] font-black px-1.5 py-0.5 rounded border border-black bg-[#2DD4BF] text-black">
+                <span className="text-[10px] font-black px-1.5 py-0.2 rounded border border-black bg-[#2DD4BF] text-black">
                   {!isHydrated ? (
                     <span className="inline-block w-2.5 h-2.5 bg-black/40 rounded-full animate-pulse" />
                   ) : (
@@ -105,19 +120,19 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {/* Bottom Section */}
-        <div className="space-y-3 pt-6 border-t-2 border-black/10">
+        <div className="space-y-3 pt-5 border-t-2 border-black/10">
           <button
             onClick={() => setIsRoommateModalOpen(true)}
             className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-zinc-600 hover:text-black hover:bg-zinc-100 rounded-lg transition-colors"
           >
             <Settings className="w-4 h-4" />
-            <span>⚙ Group & Roommates</span>
+            <span>Manage Group & Roommates</span>
           </button>
 
           {/* Klear Ledger Total Card */}
-          <div className="bg-[#2DD4BF] border-2 border-black rounded-xl p-3 shadow-[3px_3px_0_0_#000]">
+          <div className="bg-[#2DD4BF] border-2 border-black rounded-2xl p-3.5 shadow-[3px_3px_0_0_#000]">
             <div className="flex items-center justify-between text-[11px] font-black tracking-wider uppercase text-black/80">
-              <span>KLEAR LEDGER</span>
+              <span>POOL LEDGER</span>
               <Coins className="w-3.5 h-3.5 text-black" />
             </div>
             <div className="text-xl font-black font-mono tracking-tight text-black mt-1">
@@ -127,8 +142,8 @@ export const Sidebar: React.FC = () => {
                 `${formatINR(totalPoolSpent)} Total`
               )}
             </div>
-            <div className="text-[10px] font-bold text-black/70 mt-0.5 truncate">
-              {roomName} Pool
+            <div className="text-[10px] font-bold text-black/75 mt-0.5 truncate">
+              {roomName}
             </div>
           </div>
         </div>

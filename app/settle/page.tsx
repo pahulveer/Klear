@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useLedger } from "@/context/LedgerContext";
 import {
@@ -20,6 +20,10 @@ import {
   Check,
   RotateCw,
   Scale,
+  Sparkles,
+  ChevronRight,
+  TrendingDown,
+  Coins,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { formatINR } from "@/lib/utils";
@@ -56,22 +60,41 @@ export default function SettlePage() {
   const [viewMode, setViewMode] = useState<"individuals" | "transfers">("individuals");
   const [selectedMemberForDetails, setSelectedMemberForDetails] = useState<any | null>(null);
 
-  const pendingTransfers = simplifiedTransfers.filter(
-    (t) => !settledTransferIds.includes(t.id)
-  );
+  const pendingTransfers = useMemo(() => {
+    return simplifiedTransfers.filter((t) => !settledTransferIds.includes(t.id));
+  }, [simplifiedTransfers, settledTransferIds]);
 
-  const totalOutstanding = pendingTransfers.reduce((sum, t) => sum + t.amount, 0);
-  const totalRequiredAmount = simplifiedTransfers.reduce((sum, t) => sum + t.amount, 0);
-  const totalSettledAmount = simplifiedTransfers
-    .filter((t) => settledTransferIds.includes(t.id))
-    .reduce((sum, t) => sum + t.amount, 0);
-  const settledPercent =
-    totalRequiredAmount > 0
+  const totalOutstanding = useMemo(() => {
+    return pendingTransfers.reduce((sum, t) => sum + t.amount, 0);
+  }, [pendingTransfers]);
+
+  const totalRequiredAmount = useMemo(() => {
+    return simplifiedTransfers.reduce((sum, t) => sum + t.amount, 0);
+  }, [simplifiedTransfers]);
+
+  const totalSettledAmount = useMemo(() => {
+    return simplifiedTransfers
+      .filter((t) => settledTransferIds.includes(t.id))
+      .reduce((sum, t) => sum + t.amount, 0);
+  }, [simplifiedTransfers, settledTransferIds]);
+
+  const settledPercent = useMemo(() => {
+    return totalRequiredAmount > 0
       ? Math.round((totalSettledAmount / totalRequiredAmount) * 100)
       : 100;
+  }, [totalSettledAmount, totalRequiredAmount]);
+
+  // Theoretical pairwise transfers count: N * (N - 1) / 2
+  const theoreticalPairwiseCount = useMemo(() => {
+    const n = members.length;
+    return n > 1 ? Math.round((n * (n - 1)) / 2) : 0;
+  }, [members]);
+
+  const transfersSaved = Math.max(0, theoreticalPairwiseCount - simplifiedTransfers.length);
+
   const roomPoolUpi = `${roomName.toLowerCase().replace(/[^a-z0-9]/g, "") || "roompool"}@upi`;
 
-  const memberExpenses = React.useMemo(() => {
+  const memberExpenses = useMemo(() => {
     if (!selectedMemberForDetails) return [];
     return expenses.filter(
       (e) =>
@@ -80,12 +103,12 @@ export default function SettlePage() {
     );
   }, [selectedMemberForDetails, expenses]);
 
-  const memberBalance = React.useMemo(() => {
+  const memberBalance = useMemo(() => {
     if (!selectedMemberForDetails) return null;
     return detailedBalances.find((b) => b.memberId === selectedMemberForDetails.id) || null;
   }, [selectedMemberForDetails, detailedBalances]);
 
-  const memberTransfers = React.useMemo(() => {
+  const memberTransfers = useMemo(() => {
     if (!selectedMemberForDetails) return [];
     return simplifiedTransfers.filter(
       (t) =>
@@ -113,8 +136,8 @@ export default function SettlePage() {
     if (isNowSettling) {
       try {
         confetti({
-          particleCount: 60,
-          spread: 70,
+          particleCount: 65,
+          spread: 75,
           origin: { y: 0.6 },
           colors: ["#FF7A00", "#2DD4BF", "#C084FC", "#000000"],
         });
@@ -148,16 +171,16 @@ export default function SettlePage() {
   // EMPTY STATE WHEN NO MEMBERS
   if (isHydrated && members.length === 0) {
     return (
-      <div className="p-4 md:p-12 max-w-3xl mx-auto space-y-6">
+      <div className="p-4 md:p-12 max-w-3xl mx-auto space-y-6 animate-fadeIn">
         <div className="bg-white border-2 border-black rounded-3xl p-8 md:p-12 shadow-[6px_6px_0_0_#000] text-center space-y-5">
-          <div className="w-14 h-14 mx-auto bg-[#2DD4BF] border-2 border-black rounded-2xl flex items-center justify-center shadow-[3px_3px_0_0_#000]">
-            <Scale className="w-7 h-7 text-black stroke-[2.5]" />
+          <div className="w-16 h-16 mx-auto bg-[#2DD4BF] border-2 border-black rounded-2xl flex items-center justify-center shadow-[3px_3px_0_0_#000]">
+            <Scale className="w-8 h-8 text-black stroke-[2.5]" />
           </div>
           <h1 className="text-2xl md:text-4xl font-black text-black font-serif">
             No Active Settlements
           </h1>
-          <p className="text-xs md:text-sm font-bold text-zinc-600 max-w-md mx-auto">
-            Add roommates and bills to your hostel ledger to calculate simplified peer-to-peer transfers with zero circular loops.
+          <p className="text-xs md:text-sm font-bold text-zinc-600 max-w-md mx-auto leading-relaxed">
+            Add roommates and bills to your ledger to calculate simplified peer-to-peer transfers with zero circular loops.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
@@ -185,27 +208,28 @@ export default function SettlePage() {
   }
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6">
+    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6 animate-fadeIn">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
             href="/"
+            aria-label="Back to dashboard"
             className="w-9 h-9 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0_0_#000] flex items-center justify-center hover:bg-zinc-100 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 text-black" />
           </Link>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-black">
-                Minimum Settlements
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight text-black font-serif">
+                Minimum Debt Settlements
               </h1>
-              <span className="bg-[#2DD4BF] text-black text-[10px] font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0_0_#000]">
-                ACTIVE
+              <span className="bg-[#2DD4BF] text-teal-950 text-[10px] font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0_0_#000]">
+                OPTIMIZED
               </span>
             </div>
             <div className="text-xs font-bold text-zinc-600">
-              {roomName} • Fewest Payments Minimizer Active
+              {roomName} • Bipartite Net Cashflow Minimizer Active
             </div>
           </div>
         </div>
@@ -213,7 +237,7 @@ export default function SettlePage() {
         <div className="self-start sm:self-auto">
           <span className="bg-white border-2 border-black text-black text-[11px] font-black px-3 py-1.5 rounded-full shadow-[2px_2px_0_0_#000] flex items-center gap-1.5 whitespace-nowrap">
             <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-            <span>0% FEES • AUTO-CALCULATED</span>
+            <span>0% FEES • ZERO CIRCULAR TRANSFERS</span>
           </span>
         </div>
       </div>
@@ -238,27 +262,35 @@ export default function SettlePage() {
         </div>
       )}
 
-      {/* Big Orange Banner */}
-      <div className="bg-[#FF7A00] border-2 border-black rounded-2xl p-6 shadow-[4px_4px_0_0_#000] text-black space-y-5">
+      {/* Big WOW Hero Banner: Clearly Explaining Debt Minimization Before vs. After */}
+      <div className="bg-[#FF7A00] border-2 border-black rounded-3xl p-6 shadow-[4px_4px_0_0_#000] text-black space-y-5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
+          <div className="space-y-2.5 max-w-xl">
             <div className="inline-flex items-center gap-1.5 bg-white text-black text-[10px] font-black uppercase px-2.5 py-1 rounded-full border-2 border-black shadow-[1.5px_1.5px_0_0_#000]">
               <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
               <span>MINIMAL TRANSACTIONS HEURISTIC</span>
             </div>
 
             <h2 className="text-3xl md:text-4xl font-black tracking-tight font-serif">
-              Settled in {simplifiedTransfers.length} {simplifiedTransfers.length === 1 ? "Transfer" : "Transfers"}
+              {simplifiedTransfers.length === 0
+                ? "All Debts Fully Settled!"
+                : `Settled in Just ${simplifiedTransfers.length} ${
+                    simplifiedTransfers.length === 1 ? "Payment" : "Payments"
+                  }`}
             </h2>
 
             <p className="text-xs md:text-sm font-bold text-black/90 leading-relaxed">
-              Total debts reduced to minimum cash flows. Outstanding tab of {formatINR(totalOutstanding)} efficiently balanced with 0 circular handoffs.
+              {theoreticalPairwiseCount > simplifiedTransfers.length
+                ? `Normally, ${members.length} roommates would require up to ${theoreticalPairwiseCount} messy pairwise payments. Klear reduced this to just ${simplifiedTransfers.length} direct payments (${transfersSaved} fewer transfers) with zero circular loops!`
+                : `Total debts reduced to minimum net cash flows. Outstanding tab of ${formatINR(
+                    totalOutstanding
+                  )} efficiently balanced.`}
             </p>
           </div>
 
           {/* 2 stat boxes on right */}
           <div className="grid grid-cols-2 gap-3 shrink-0">
-            <div className="bg-white border-2 border-black rounded-xl p-3.5 shadow-[2px_2px_0_0_#000]">
+            <div className="bg-white border-2 border-black rounded-2xl p-3.5 shadow-[2px_2px_0_0_#000]">
               <div className="text-[10px] font-black uppercase text-zinc-500">
                 TOTAL POOL SPENT
               </div>
@@ -267,20 +299,19 @@ export default function SettlePage() {
               </div>
               <div className="text-[10px] font-black text-emerald-600 mt-0.5">
                 {settledTransferIds.length > 0
-                  ? `${settledTransferIds.length} Settled`
-                  : "Active Pool"}
+                  ? `${settledTransferIds.length} Settled ✓`
+                  : "Active Cycle"}
               </div>
             </div>
 
-            <div className="bg-white border-2 border-black rounded-xl p-3.5 shadow-[2px_2px_0_0_#000]">
+            <div className="bg-white border-2 border-black rounded-2xl p-3.5 shadow-[2px_2px_0_0_#000]">
               <div className="text-[10px] font-black uppercase text-zinc-500">
-                DORM CYCLE STATUS
+                TRANSFERS SAVED
               </div>
-              <div className="text-xs md:text-sm font-black text-black mt-1 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>Live Active</span>
+              <div className="text-xl md:text-2xl font-black font-mono text-[#059669] mt-0.5">
+                {transfersSaved > 0 ? `-${transfersSaved} Handoffs` : "Optimal"}
               </div>
-              <div className="text-[10px] font-bold text-zinc-500 mt-1">
+              <div className="text-[10px] font-bold text-zinc-500 mt-0.5">
                 {members.length} Roommates
               </div>
             </div>
@@ -290,20 +321,25 @@ export default function SettlePage() {
         {/* Dynamic Graph Pathway Strip */}
         <div className="pt-3 border-t-2 border-black/15 flex items-center gap-2 flex-wrap text-xs font-mono font-bold">
           <span className="text-[10px] font-black uppercase tracking-wider text-black/80 mr-1">
-            GRAPH PATHWAY:
+            OPTIMIZED FLOW:
           </span>
           {simplifiedTransfers.length > 0 ? (
             simplifiedTransfers.map((t, idx) => {
               const fromMember = members.find((m) => m.id === t.fromId);
               const toMember = members.find((m) => m.id === t.toId);
+              const isSettled = settledTransferIds.includes(t.id);
               return (
                 <React.Fragment key={t.id}>
-                  {idx > 0 && <span>•</span>}
-                  <span className="bg-white border border-black px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
-                    {fromMember?.name?.split(" ")[0]} (-{formatINR(t.amount)})
+                  {idx > 0 && <span className="text-black font-black">•</span>}
+                  <span className={`border border-black px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000] ${
+                    isSettled ? "bg-zinc-200 line-through text-zinc-500" : "bg-white text-black"
+                  }`}>
+                    {fromMember?.isYou ? "You" : fromMember?.name?.split(" ")[0]} (-{formatINR(t.amount)})
                   </span>
                   <span>➔</span>
-                  <span className="bg-[#2DD4BF] border border-black px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000] text-black">
+                  <span className={`border border-black px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000] text-black ${
+                    isSettled ? "bg-zinc-200 line-through text-zinc-500" : "bg-[#2DD4BF]"
+                  }`}>
                     {toMember?.isYou ? "You" : toMember?.name?.split(" ")[0]} (+{formatINR(t.amount)})
                   </span>
                 </React.Fragment>
@@ -315,7 +351,7 @@ export default function SettlePage() {
             </span>
           )}
           <span className="bg-black text-white text-[10px] px-2 py-0.5 rounded border border-black">
-            Everyone&apos;s even
+            Zero circular handoffs
           </span>
         </div>
       </div>
@@ -324,18 +360,18 @@ export default function SettlePage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <button
           onClick={handleCopyAll}
-          className="bg-white hover:bg-zinc-50 border-2 border-black rounded-xl p-3 shadow-[3px_3px_0_0_#000] flex items-center justify-between text-left transition-all"
+          className="bg-white hover:bg-zinc-50 border-2 border-black rounded-2xl p-3 shadow-[3px_3px_0_0_#000] flex items-center justify-between text-left transition-all active:translate-y-0.5"
         >
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-[#DDD6FE] border border-black rounded-lg">
+            <div className="p-2 bg-[#DDD6FE] border border-black rounded-xl">
               <Copy className="w-4 h-4 text-purple-950" />
             </div>
             <div>
               <div className="text-xs font-black text-black">
-                {copiedAll ? "Copied to Clipboard!" : "Copy All"}
+                {copiedAll ? "Copied to Clipboard!" : "Copy WhatsApp Breakdown"}
               </div>
               <div className="text-[10px] font-bold text-zinc-500">
-                Formatted for WhatsApp
+                1-click text for group chat
               </div>
             </div>
           </div>
@@ -344,16 +380,16 @@ export default function SettlePage() {
 
         <button
           onClick={handleExportCSV}
-          className="bg-white hover:bg-zinc-50 border-2 border-black rounded-xl p-3 shadow-[3px_3px_0_0_#000] flex items-center justify-between text-left transition-all"
+          className="bg-white hover:bg-zinc-50 border-2 border-black rounded-2xl p-3 shadow-[3px_3px_0_0_#000] flex items-center justify-between text-left transition-all active:translate-y-0.5"
         >
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-[#2DD4BF] border border-black rounded-lg">
+            <div className="p-2 bg-[#2DD4BF] border border-black rounded-xl">
               <FileDown className="w-4 h-4 text-teal-950" />
             </div>
             <div>
-              <div className="text-xs font-black text-black">Export PDF/CSV</div>
+              <div className="text-xs font-black text-black">Export Audit Sheet (CSV)</div>
               <div className="text-[10px] font-bold text-zinc-500">
-                Monthly Audit Sheet
+                Full settlement proof
               </div>
             </div>
           </div>
@@ -362,16 +398,16 @@ export default function SettlePage() {
 
         <button
           onClick={() => setIsRoommateModalOpen(true)}
-          className="bg-white hover:bg-zinc-50 border-2 border-black rounded-xl p-3 shadow-[3px_3px_0_0_#000] flex items-center justify-between text-left transition-all"
+          className="bg-white hover:bg-zinc-50 border-2 border-black rounded-2xl p-3 shadow-[3px_3px_0_0_#000] flex items-center justify-between text-left transition-all active:translate-y-0.5"
         >
           <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-[#FED7AA] border border-black rounded-lg">
+            <div className="p-2 bg-[#FED7AA] border border-black rounded-xl">
               <UserPlus className="w-4 h-4 text-orange-950" />
             </div>
             <div>
-              <div className="text-xs font-black text-black">Edit Ledger</div>
+              <div className="text-xs font-black text-black">Manage Roommates</div>
               <div className="text-[10px] font-bold text-zinc-500">
-                Add/Exclude Roomies ({members.length})
+                {members.length} members & UPI IDs
               </div>
             </div>
           </div>
@@ -379,9 +415,9 @@ export default function SettlePage() {
         </button>
       </div>
 
-      {/* Main Grid: Who Pays Whom (Left 8) + UPI QR & Nudge (Right 4) */}
+      {/* Main Grid: Left 8 Cols (Settlement Cards) + Right 4 Cols (QR & WhatsApp) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full min-w-0">
-        {/* Left Column: Who Pays Whom Cards */}
+        {/* Left Column: Settlement Progress & Cards */}
         <div className="lg:col-span-8 space-y-4 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -462,7 +498,7 @@ export default function SettlePage() {
             </div>
           </div>
 
-          {/* VIEW MODE 1: Roommate Tracker Cards (Clear Who Pays Whom & 1-Click Actions) */}
+          {/* VIEW MODE 1: Roommate Tracker Cards */}
           {viewMode === "individuals" && (
             <div className="space-y-3">
               {members.length === 0 ? (
@@ -528,6 +564,7 @@ export default function SettlePage() {
                                   type="button"
                                   onClick={() => handleCopyText(m.upiId || "", m.id)}
                                   title="Copy UPI ID"
+                                  aria-label="Copy UPI ID"
                                   className="hover:text-black"
                                 >
                                   {copiedUpi === m.id ? (
@@ -559,10 +596,10 @@ export default function SettlePage() {
                           </div>
                         </div>
 
-                        {/* Pending Settlement Transactions (Exact Who Pays Whom) */}
+                        {/* Pending Settlement Transactions */}
                         <div className="space-y-2 pt-1 border-t border-black/10">
                           <div className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">
-                            ACTIVE SETTLEMENTS ({memberTransfers.length})
+                            ACTIVE TRANSFERS ({memberTransfers.length})
                           </div>
 
                           {memberTransfers.length === 0 ? (
@@ -683,6 +720,7 @@ export default function SettlePage() {
                                         }
                                         className="p-1 bg-white hover:bg-zinc-100 rounded-lg border border-black text-black"
                                         title="Show QR Code"
+                                        aria-label="Show QR Code"
                                       >
                                         <QrCode className="w-3.5 h-3.5" />
                                       </button>
@@ -702,6 +740,7 @@ export default function SettlePage() {
                                         }}
                                         className="p-1 bg-white hover:bg-zinc-100 rounded-lg border border-black text-black"
                                         title="Copy WhatsApp Nudge"
+                                        aria-label="Copy WhatsApp Nudge"
                                       >
                                         <Share2 className="w-3.5 h-3.5" />
                                       </button>
@@ -785,7 +824,7 @@ export default function SettlePage() {
                       {/* Rubber "SETTLED" Stamp Slam */}
                       {isSettled && (
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
-                          <div className="stamp-slam px-4 py-2 border-4 border-emerald-700 text-emerald-800 bg-white/95 font-black text-base sm:text-lg uppercase tracking-widest rounded-xl shadow-[4px_4px_0_0_#065f46]">
+                          <div className="stamp-slam px-5 py-2.5 border-4 border-emerald-700 text-emerald-800 bg-white/95 font-black text-base sm:text-xl uppercase tracking-widest rounded-2xl shadow-[4px_4px_0_0_#065f46]">
                             ✓ SETTLED &amp; PAID
                           </div>
                         </div>
@@ -847,12 +886,12 @@ export default function SettlePage() {
 
                         {/* Middle Amount & Arrow */}
                         <div className="text-center shrink-0 px-2">
-                          <div className="text-2xl font-black font-mono text-black">
+                          <div className="text-2xl sm:text-3xl font-black font-mono text-black">
                             <AnimatedCurrency value={t.amount} />
                           </div>
                           <div className="flex items-center justify-center gap-1 text-[10px] font-black uppercase text-zinc-500">
                             <span>—</span>
-                            <ArrowRight className="w-3 h-3 text-black" />
+                            <ArrowRight className="w-3.5 h-3.5 text-black" />
                             <span>—</span>
                           </div>
                           <div className="text-[9px] font-bold text-zinc-400">
@@ -889,14 +928,13 @@ export default function SettlePage() {
                                 className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                                 title="Open in UPI app (mobile only)"
                               >
-                                <span>Pay {formatINR(t.amount)} to {creditor.name.split(" ")[0]} via UPI →</span>
+                                <span>Pay {formatINR(t.amount)} via UPI →</span>
                               </a>
 
-                              {/* Desktop / Manual fallback: 1-click Copy UPI ID */}
                               <button
                                 type="button"
                                 onClick={() => handleCopyText(creditor.upiId || "", `transfer-upi-${t.id}`)}
-                                title="Copy UPI ID for desktop / manual payment"
+                                title="Copy UPI ID for desktop payment"
                                 aria-label={`Copy UPI ID for ${creditor.name}`}
                                 className="inline-flex items-center gap-1.5 bg-white hover:bg-zinc-100 text-black font-black text-xs px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] active:translate-y-0.5 transition-all"
                               >
@@ -961,10 +999,10 @@ export default function SettlePage() {
         {/* Right Column: Direct UPI QR + WhatsApp Nudge + Audit History */}
         <div className="lg:col-span-4 space-y-5 min-w-0 lg:sticky lg:top-20 self-start">
           {/* Box 1: Direct UPI QR */}
-          <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3 text-center">
+          <div className="bg-white border-2 border-black rounded-3xl p-5 shadow-[4px_4px_0_0_#000] space-y-3 text-center">
             <div className="flex items-center justify-between text-xs font-black">
               <span className="flex items-center gap-1.5">
-                <QrCode className="w-4 h-4" /> Direct UPI QR
+                <QrCode className="w-4 h-4" /> Scan-to-Pay UPI QR
               </span>
               <span className="bg-[#FED7AA] text-orange-950 text-[10px] font-black px-2 py-0.5 rounded border border-black uppercase">
                 {roomName.split(" ")[0]} POOL
@@ -972,7 +1010,7 @@ export default function SettlePage() {
             </div>
 
             {/* Dynamic QR Code for Desktop judges */}
-            <div className="p-3 bg-white border-2 border-black rounded-xl shadow-[3px_3px_0_0_#000] inline-block mx-auto">
+            <div className="p-3 bg-white border-2 border-black rounded-2xl shadow-[3px_3px_0_0_#000] inline-block mx-auto">
               <QRCodeSVG
                 value={buildUpiLink({
                   upiId: roomPoolUpi,
@@ -991,7 +1029,7 @@ export default function SettlePage() {
                 {roomPoolUpi}
               </div>
               <div className="text-[11px] font-bold text-zinc-500">
-                Scan with any Indian UPI App
+                Scan with GPay, PhonePe, Paytm or BHIM
               </div>
             </div>
 
@@ -1013,10 +1051,10 @@ export default function SettlePage() {
           </div>
 
           {/* Box 2: 1-Click WhatsApp Nudge */}
-          <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
+          <div className="bg-white border-2 border-black rounded-3xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-black text-sm text-black flex items-center gap-1.5">
-                <span>💬</span> WhatsApp Nudge
+                <span>💬</span> WhatsApp Banter Nudge
               </h3>
               <span className="bg-[#2DD4BF] text-teal-950 text-[10px] font-black px-2 py-0.5 rounded border border-black">
                 1-CLICK
@@ -1024,7 +1062,7 @@ export default function SettlePage() {
             </div>
 
             {pendingTransfers.length === 0 ? (
-              <div className="bg-emerald-50 border-2 border-emerald-600 rounded-xl p-3 text-center space-y-1">
+              <div className="bg-emerald-50 border-2 border-emerald-600 rounded-2xl p-3 text-center space-y-1">
                 <div className="text-xs font-black text-emerald-900 flex items-center justify-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-emerald-700" />
                   <span>All Tabs Settled!</span>
@@ -1036,12 +1074,12 @@ export default function SettlePage() {
             ) : (
               <>
                 <p className="text-[11px] font-bold text-zinc-600">
-                  Send a banter reminder with accurate debt breakdowns straight to the room group chat.
+                  Send a friendly banter reminder with exact debt breakdowns straight to your roommate WhatsApp group.
                 </p>
 
-                <div className="bg-[#FAF8F5] border-2 border-black rounded-xl p-3 text-xs font-mono font-bold text-zinc-800 shadow-[1px_1px_0_0_#000]">
+                <div className="bg-[#FAF8F5] border-2 border-black rounded-2xl p-3 text-xs font-mono font-bold text-zinc-800 shadow-[1px_1px_0_0_#000]">
                   <div className="text-[9px] font-black uppercase text-zinc-400 mb-1">
-                    Preview message:
+                    Preview reminder:
                   </div>
                   &quot;{whatsappNudge.text}&quot;
                 </div>
@@ -1053,40 +1091,40 @@ export default function SettlePage() {
                   className="w-full flex items-center justify-center gap-2 bg-[#2DD4BF] text-black font-black text-xs py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>▷ Nudge on WhatsApp Group</span>
+                  <span>Nudge on WhatsApp Group</span>
                 </a>
               </>
             )}
           </div>
 
           {/* Box 3: Audit History */}
-          <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
+          <div className="bg-white border-2 border-black rounded-3xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-black text-sm text-black flex items-center gap-1.5">
-                <History className="w-4 h-4" /> Audit History
+                <History className="w-4 h-4" /> Settlement Log
               </h3>
-              <span className="text-[10px] font-bold text-zinc-500">Live Log</span>
+              <span className="text-[10px] font-bold text-zinc-500">Audit Trail</span>
             </div>
 
             <div className="space-y-2.5 text-xs font-bold">
               {settledTransferIds.length > 0 ? (
-                settledTransferIds.map((tid, idx) => (
+                settledTransferIds.map((tid) => (
                   <div key={tid} className="flex items-start gap-2">
                     <div className="w-5 h-5 rounded-full bg-emerald-100 border border-emerald-600 text-emerald-800 flex items-center justify-center text-[10px] font-black shrink-0 mt-0.5">
                       ✓
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-black font-black">Transfer Settled</div>
-                      <div className="text-[10px] text-zinc-500">
+                      <div className="text-[10px] text-zinc-500 font-mono">
                         {tid} marked paid
                       </div>
                     </div>
-                    <span className="text-[10px] text-zinc-400 shrink-0">Just now</span>
+                    <span className="text-[10px] text-zinc-400 shrink-0">Confirmed</span>
                   </div>
                 ))
               ) : (
                 <div className="text-zinc-400 text-[11px] font-normal italic">
-                  No settlements recorded yet in {roomName}.
+                  No settlements completed yet in this cycle.
                 </div>
               )}
             </div>

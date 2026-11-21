@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useLedger } from "@/context/LedgerContext";
-import { X, UserPlus, Trash2, ShieldCheck, Check, AlertCircle, Edit2 } from "lucide-react";
+import { X, UserPlus, Trash2, ShieldCheck, Check, AlertCircle, Edit2, Users } from "lucide-react";
 import { isValidUpiId } from "@/lib/settleDebts";
 
 interface RoommateModalProps {
@@ -79,7 +79,6 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
     const member = members.find((m) => m.id === memberId);
     if (!member) return;
 
-    // Remove old and re-add or mutate member in context
     deleteMember(memberId);
     addMember({
       name: member.name,
@@ -92,44 +91,49 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-white border-2 border-black rounded-2xl shadow-[6px_6px_0_0_#000] p-6 space-y-5">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="relative w-full max-w-md bg-white border-2 border-black rounded-3xl shadow-[6px_6px_0_0_#000] p-6 space-y-5 max-h-[92vh] overflow-y-auto animate-scaleUp">
         {/* Close Button */}
         <button
           onClick={onClose}
           aria-label="Close modal"
-          className="absolute top-4 right-4 p-1.5 rounded-lg border-2 border-black bg-[#FAF8F5] hover:bg-zinc-200 shadow-[2px_2px_0_0_#000] transition-colors focus:ring-2 focus:ring-black focus:outline-none"
+          className="absolute top-4 right-4 p-1.5 rounded-xl border-2 border-black bg-[#FAF8F5] hover:bg-zinc-200 shadow-[2px_2px_0_0_#000] transition-colors focus:ring-2 focus:ring-black focus:outline-none"
         >
           <X className="w-4 h-4 text-black" />
         </button>
 
         {/* Modal Header */}
         <div>
-          <div className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black text-xs font-black px-2.5 py-1 rounded-full border-2 border-black shadow-[1.5px_1.5px_0_0_#000] mb-2">
-            <ShieldCheck className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black text-xs font-black px-3 py-1 rounded-full border-2 border-black shadow-[1.5px_1.5px_0_0_#000] mb-2">
+            <Users className="w-3.5 h-3.5" />
             <span>ROOMMATES DIRECTORY</span>
           </div>
           <h3 className="text-xl font-black text-black">{roomName} Members</h3>
           <p className="text-xs font-bold text-zinc-500 mt-0.5">
-            Manage who splits bills and receives UPI transfers in this group.
+            Manage who splits bills and receives direct UPI transfers in this group.
           </p>
         </div>
 
         {/* Add Roommate Form */}
-        <form onSubmit={handleSubmit} className="p-3.5 bg-[#FAF8F5] border-2 border-black rounded-xl space-y-3">
+        <form onSubmit={handleSubmit} className="p-4 bg-[#FAF8F5] border-2 border-black rounded-2xl space-y-3 shadow-[2px_2px_0_0_#000]">
           <div className="text-xs font-black uppercase text-zinc-700 flex items-center gap-1.5">
             <UserPlus className="w-3.5 h-3.5 text-black" />
             <span>+ Add New Roommate</span>
           </div>
 
           {errorMessage && (
-            <div className="bg-rose-50 border border-rose-500 rounded-lg p-2 text-rose-800 text-xs font-bold flex items-center gap-1.5">
+            <div className="bg-rose-50 border border-rose-500 rounded-xl p-2.5 text-rose-800 text-xs font-bold flex items-center gap-1.5">
               <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
               <span>{errorMessage}</span>
             </div>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <div>
               <label htmlFor="roommate-name" className="sr-only">Roommate Name</label>
               <input
@@ -142,7 +146,7 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
                   setName(e.target.value);
                   if (errorMessage) setErrorMessage(null);
                 }}
-                className="w-full bg-white border-2 border-black rounded-lg px-3 py-1.5 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#FF7A00]"
+                className="w-full bg-white border-2 border-black rounded-xl px-3 py-2 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#FF7A00]"
                 autoFocus
               />
             </div>
@@ -159,26 +163,26 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
                   setUpiId(e.target.value);
                   if (errorMessage) setErrorMessage(null);
                 }}
-                className="w-full bg-white border-2 border-black rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#FF7A00]"
+                className="w-full bg-white border-2 border-black rounded-xl px-3 py-2 text-xs font-mono font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#FF7A00]"
               />
             </div>
 
             {members.length > 0 && (
-              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 select-none pt-1">
+              <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 select-none pt-0.5">
                 <input
                   type="checkbox"
                   checked={isYou}
                   onChange={(e) => setIsYou(e.target.checked)}
-                  className="w-3.5 h-3.5 rounded border border-black accent-[#FF7A00]"
+                  className="w-4 h-4 rounded border border-black accent-[#FF7A00]"
                 />
-                <span>Set as &quot;You&quot; (Primary user)</span>
+                <span>Set as &quot;You&quot; (Primary active user)</span>
               </label>
             )}
           </div>
 
           <button
             type="submit"
-            className="w-full py-2 bg-[#FF7A00] text-black font-black text-xs rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-y-0.5 transition-all focus:ring-2 focus:ring-black focus:outline-none"
+            className="w-full py-2.5 bg-[#FF7A00] text-black font-black text-xs rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-orange-500 active:translate-y-0.5 transition-all focus:ring-2 focus:ring-black focus:outline-none"
           >
             Add Roommate to Group
           </button>
@@ -186,7 +190,7 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
 
         {/* Current Members List */}
         <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-          <div className="text-[11px] font-black uppercase text-zinc-500">
+          <div className="text-[11px] font-black uppercase text-zinc-500 tracking-wider">
             CURRENT MEMBERS ({members.length})
           </div>
 
@@ -202,7 +206,7 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div
-                    className={`w-7 h-7 rounded-full border border-black ${m.avatarBg} text-black font-black text-xs flex items-center justify-center shrink-0`}
+                    className={`w-8 h-8 rounded-full border border-black ${m.avatarBg} text-black font-black text-xs flex items-center justify-center shrink-0 shadow-[1px_1px_0_0_#000]`}
                   >
                     {m.initials}
                   </div>
@@ -223,7 +227,7 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
                           placeholder="e.g. name@oksbi"
                           value={editingUpiValue}
                           onChange={(e) => setEditingUpiValue(e.target.value)}
-                          className="text-[10px] font-mono font-bold border border-black rounded px-1.5 py-0.5 w-36 bg-amber-50"
+                          className="text-[10px] font-mono font-bold border border-black rounded-lg px-2 py-0.5 w-36 bg-amber-50"
                           autoFocus
                         />
                         <button
@@ -272,7 +276,7 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
                   onClick={() => deleteMember(m.id)}
                   title="Remove roommate"
                   aria-label={`Remove ${m.name}`}
-                  className="p-1.5 text-zinc-400 hover:text-rose-600 rounded transition-colors focus:ring-1 focus:ring-rose-500"
+                  className="p-1.5 text-zinc-400 hover:text-rose-600 rounded transition-colors focus:ring-1 focus:ring-rose-500 ml-2"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -284,7 +288,7 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
         {/* Done Button */}
         <button
           onClick={onClose}
-          className="w-full py-2.5 bg-[#2DD4BF] text-black font-black text-xs rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-400 transition-colors focus:ring-2 focus:ring-black focus:outline-none"
+          className="w-full py-2.5 bg-[#2DD4BF] text-black font-black text-xs rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-300 active:translate-y-0.5 transition-all focus:ring-2 focus:ring-black focus:outline-none"
         >
           Done
         </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { useLedger } from "@/context/LedgerContext";
 import {
@@ -27,6 +27,13 @@ import {
   ReceiptIndianRupee,
   Building2,
   Network,
+  Search,
+  CheckCircle2,
+  Sparkles,
+  ArrowRight,
+  Clock,
+  ChevronRight,
+  TrendingUp,
 } from "lucide-react";
 import { formatINR } from "@/lib/utils";
 import { QRModal } from "@/components/QRModal";
@@ -57,6 +64,7 @@ export default function DashboardPage() {
   const mounted = isHydrated;
 
   const [activeCategory, setActiveCategory] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
   const [copiedNudge, setCopiedNudge] = useState(false);
   const [isRoommateModalOpen, setIsRoommateModalOpen] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
@@ -77,28 +85,19 @@ export default function DashboardPage() {
   });
 
   const categories = [
-    { id: "ALL", label: `ALL (${expenses.length})` },
-    { id: "Food", label: "FOOD & DRINK" },
-    { id: "Hostel", label: "HOSTEL UTILITIES" },
-    { id: "Groceries", label: "GROCERIES" },
-    { id: "Party", label: "PARTY & OUTINGS" },
+    { id: "ALL", label: "All Bills" },
+    { id: "Food", label: "Food & Meals" },
+    { id: "Hostel", label: "Hostel & Stay" },
+    { id: "Groceries", label: "Groceries" },
+    { id: "Party", label: "Party & Outings" },
   ];
-
-  const filteredExpenses =
-    activeCategory === "ALL"
-      ? expenses
-      : expenses.filter(
-        (e) =>
-          e.category.toLowerCase() === activeCategory.toLowerCase() ||
-          (activeCategory === "Hostel" && e.category === "Utilities")
-      );
 
   const youMember = members.find((m) => m.isYou) || members[0];
   const pendingTransfers = simplifiedTransfers.filter(
     (t) => !settledTransferIds.includes(t.id)
   );
 
-  // Find any transfer where You owe someone for the immediate pay alert
+  // Immediate pending transfer where You owe someone
   const immediateOweTransfer = youMember
     ? pendingTransfers.find((t) => t.fromId === youMember.id)
     : null;
@@ -107,24 +106,54 @@ export default function DashboardPage() {
     : null;
 
   // Debtors owing you
-  const debtorsOwingYou = youMember
-    ? pendingTransfers
+  const debtorsOwingYou = useMemo(() => {
+    if (!youMember) return [];
+    return pendingTransfers
       .filter((t) => t.toId === youMember.id)
       .map((t) => {
         const m = members.find((mem) => mem.id === t.fromId);
-        return `${m?.name?.split(" ")[0] || "Roomie"} (${formatINR(t.amount)})`;
-      })
-    : [];
+        return {
+          name: m?.name?.split(" ")[0] || "Roomie",
+          amount: t.amount,
+          transfer: t,
+        };
+      });
+  }, [youMember, pendingTransfers, members]);
 
   // Creditors you owe
-  const creditorsYouOwe = youMember
-    ? pendingTransfers
+  const creditorsYouOwe = useMemo(() => {
+    if (!youMember) return [];
+    return pendingTransfers
       .filter((t) => t.fromId === youMember.id)
       .map((t) => {
         const m = members.find((mem) => mem.id === t.toId);
-        return `${m?.name?.split(" ")[0] || "Roomie"} (${formatINR(t.amount)})`;
-      })
-    : [];
+        return {
+          name: m?.name?.split(" ")[0] || "Roomie",
+          amount: t.amount,
+          transfer: t,
+          creditor: m,
+        };
+      });
+  }, [youMember, pendingTransfers, members]);
+
+  // Filtered and searched expenses
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter((e) => {
+      const matchesCategory =
+        activeCategory === "ALL" ||
+        e.category.toLowerCase() === activeCategory.toLowerCase() ||
+        (activeCategory === "Hostel" && e.category === "Utilities");
+
+      const query = searchQuery.trim().toLowerCase();
+      const matchesSearch =
+        !query ||
+        e.title.toLowerCase().includes(query) ||
+        e.category.toLowerCase().includes(query) ||
+        (members.find((m) => m.id === e.paidById)?.name || "").toLowerCase().includes(query);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [expenses, activeCategory, searchQuery, members]);
 
   const handleCopyNudge = () => {
     navigator.clipboard.writeText(whatsappNudge.text);
@@ -134,13 +163,13 @@ export default function DashboardPage() {
 
   const getExpenseIcon = (title: string, category: string) => {
     const t = title.toLowerCase();
-    if (t.includes("biryani") || category === "Food")
+    if (t.includes("biryani") || t.includes("food") || t.includes("dinner") || category === "Food")
       return <Utensils className="w-5 h-5 text-amber-800" />;
-    if (t.includes("power") || t.includes("meter") || t.includes("ac"))
+    if (t.includes("power") || t.includes("meter") || t.includes("ac") || t.includes("electric"))
       return <Zap className="w-5 h-5 text-emerald-800" />;
-    if (t.includes("blinkit") || category === "Groceries")
+    if (t.includes("blinkit") || t.includes("zepto") || t.includes("grocery") || category === "Groceries")
       return <ShoppingBag className="w-5 h-5 text-purple-800" />;
-    if (t.includes("wifi") || t.includes("airtel") || category === "Utilities")
+    if (t.includes("wifi") || t.includes("airtel") || t.includes("jio") || category === "Utilities")
       return <Wifi className="w-5 h-5 text-rose-800" />;
     return <Coffee className="w-5 h-5 text-orange-800" />;
   };
@@ -160,21 +189,25 @@ export default function DashboardPage() {
     }
   };
 
-  // EMPTY STATE (Only when loaded and no roommates exist yet)
+  // EMPTY STATE: Zero roommates in group
   if (isHydrated && members.length === 0) {
     return (
-      <div className="p-4 md:p-12 max-w-4xl mx-auto space-y-8">
+      <div className="p-4 md:p-12 max-w-4xl mx-auto space-y-8 animate-fadeIn">
         <div className="bg-white border-2 border-black rounded-3xl p-8 md:p-12 shadow-[6px_6px_0_0_#000] text-center space-y-6">
-          <div className="w-14 h-14 mx-auto bg-[#FF6B00] border-2 border-black rounded-2xl flex items-center justify-center shadow-[3px_3px_0_0_#000]">
-            <ReceiptIndianRupee className="w-7 h-7 text-black stroke-[2.5]" />
+          <div className="w-16 h-16 mx-auto bg-[#FF7A00] border-2 border-black rounded-2xl flex items-center justify-center shadow-[3px_3px_0_0_#000]">
+            <ReceiptIndianRupee className="w-8 h-8 text-black stroke-[2.5]" />
           </div>
 
           <div className="space-y-3">
+            <div className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black text-xs font-black px-3 py-1 rounded-full border-2 border-black shadow-[1.5px_1.5px_0_0_#000]">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>COLLEGE HOSTEL EXPENSE SPLITTER</span>
+            </div>
             <h1 className="text-3xl md:text-5xl font-black tracking-tight text-black font-serif">
               Welcome to Klear
             </h1>
-            <p className="text-sm md:text-base font-bold text-zinc-600 max-w-lg mx-auto">
-              Your ledger is currently empty. Start fresh by adding your roommates, or load demo data to test debt simplification immediately.
+            <p className="text-sm md:text-base font-bold text-zinc-600 max-w-lg mx-auto leading-relaxed">
+              Zero-awkwardness hostel expense splitting, OCR bill scanning, and minimum-transfer debt optimization for college roommates.
             </p>
           </div>
 
@@ -185,7 +218,7 @@ export default function DashboardPage() {
               className="brutal-btn w-full sm:w-auto flex items-center justify-center gap-2 bg-[#FF7A00] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:bg-orange-500 transition-all"
             >
               <UserPlus className="w-5 h-5 stroke-[2.5]" />
-              <span>+ Add Your First Roommate</span>
+              <span>+ Add First Roommate</span>
             </button>
 
             <button
@@ -193,7 +226,7 @@ export default function DashboardPage() {
               className="brutal-btn w-full sm:w-auto flex items-center justify-center gap-2 bg-[#25D366] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:bg-emerald-400 transition-all"
             >
               <MessageSquare className="w-5 h-5 stroke-[2.5]" />
-              <span>Import from WhatsApp</span>
+              <span>Import WhatsApp Chat</span>
             </button>
 
             <button
@@ -201,7 +234,7 @@ export default function DashboardPage() {
               className="brutal-btn w-full sm:w-auto flex items-center justify-center gap-2 bg-[#2DD4BF] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:bg-teal-300 transition-all"
             >
               <RotateCw className="w-5 h-5" />
-              <span>Load Demo Data</span>
+              <span>Load Room 402 Sample</span>
             </button>
           </div>
         </div>
@@ -219,72 +252,86 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6">
+    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6 animate-fadeIn">
       {/* Top Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tight text-black font-serif">
-            {roomName} Ledger
-          </h1>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-black font-serif">
+              {roomName}
+            </h1>
+            <span className="bg-[#FAF8F5] border-2 border-black text-black text-xs font-black px-2.5 py-0.5 rounded-full shadow-[1.5px_1.5px_0_0_#000]">
+              {members.length} {members.length === 1 ? "Roommate" : "Roommates"}
+            </span>
+            {pendingTransfers.length === 0 ? (
+              <span className="bg-[#2DD4BF] text-teal-950 border border-black text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
+                All Even ✓
+              </span>
+            ) : (
+              <span className="bg-[#FFEDD5] text-orange-950 border border-black text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
+                {pendingTransfers.length} {pendingTransfers.length === 1 ? "Settlement Due" : "Settlements Due"}
+              </span>
+            )}
+          </div>
           <p className="text-xs md:text-sm font-bold text-zinc-600 mt-1">
-            Real-time peer debts & cashflow optimizer for {roomName}
+            Real-time peer debt minimization & shared expense tracking
           </p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button
             onClick={() => setIsWhatsAppModalOpen(true)}
-            className="brutal-btn flex items-center gap-2 bg-[#25D366] text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-emerald-400 transition-all whitespace-nowrap"
+            className="brutal-btn flex items-center gap-1.5 bg-[#25D366] text-black font-black text-xs md:text-sm px-3.5 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-emerald-400 transition-all whitespace-nowrap"
           >
             <MessageSquare className="w-4 h-4 stroke-[2.5]" />
-            <span>Import from WhatsApp</span>
+            <span>Import WhatsApp</span>
           </button>
 
           <Link
-            href="/add"
-            className="brutal-btn flex items-center gap-2 bg-[#FF7A00] text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-orange-500 transition-all whitespace-nowrap"
+            href="/add?focus=scan"
+            className="brutal-btn flex items-center gap-1.5 bg-white text-black font-black text-xs md:text-sm px-3.5 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-zinc-50 transition-all whitespace-nowrap"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            <span>+ Add Expense</span>
+            <Camera className="w-4 h-4" />
+            <span>Scan Bill</span>
           </Link>
 
           <Link
-            href="/add?focus=scan"
-            className="brutal-btn flex items-center gap-2 bg-white text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-zinc-50 transition-all whitespace-nowrap"
+            href="/add"
+            className="brutal-btn flex items-center gap-1.5 bg-[#FF7A00] text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-orange-500 transition-all whitespace-nowrap"
           >
-            <Camera className="w-4 h-4" />
-            <span>Scan OCR Bill</span>
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Add Expense</span>
           </Link>
         </div>
       </div>
 
-      {/* Main Grid: Left 8 Cols + Right 4 Cols */}
+      {/* Main Grid: Left 8 Cols (Hero + Feed) + Right 4 Cols (Matrix + Nudge) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full min-w-0">
-        {/* Left Column: Hero Card + Stat Tiles + Dues + Expenses */}
+        {/* Left Column: Hero Overview + Quick Pay Alert + Stat Tiles + Expense Feed */}
         <div className="lg:col-span-8 space-y-6 min-w-0">
-          {/* Hero Card */}
-          <div className="bg-[#FF7A00] border-2 border-black rounded-2xl p-5 md:p-6 shadow-[4px_4px_0_0_#000] text-black relative overflow-hidden">
-            {/* Top row */}
-            <div className="flex items-center justify-between">
+          {/* Master Financial Overview Card */}
+          <div className="bg-[#FF7A00] border-2 border-black rounded-3xl p-5 md:p-6 shadow-[4px_4px_0_0_#000] text-black relative overflow-hidden">
+            {/* Top row: Group identity & shortcut */}
+            <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] flex items-center justify-center">
+                <div className="w-10 h-10 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000] flex items-center justify-center shrink-0">
                   <Building2 className="w-5 h-5 text-black" strokeWidth={2.5} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-black text-lg md:text-xl tracking-tight">
+                    <span className="font-black text-lg md:text-xl tracking-tight text-black">
                       {roomName}
                     </span>
                     <span className="bg-black text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full">
-                      HOSTEL
+                      ACTIVE LEDGER
                     </span>
                   </div>
                   <div className="text-xs font-bold text-black/80">
                     {!isHydrated ? (
                       <span className="inline-block w-28 h-3.5 bg-black/20 rounded animate-pulse" />
                     ) : (
-                      `${members.length} Active ${members.length === 1 ? "Roommate" : "Roommates"} • Hostel Pool`
+                      `Viewing as: ${youMember?.name || "Roommate"} (${youMember?.isYou ? "You" : "Primary"})`
                     )}
                   </div>
                 </div>
@@ -292,88 +339,187 @@ export default function DashboardPage() {
 
               <button
                 onClick={() => setIsRoommateModalOpen(true)}
-                title="Manage group roommates"
-                className="brutal-btn w-8 h-8 rounded-full bg-white border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center hover:bg-amber-100 transition-colors"
+                title="Manage roommates directory"
+                aria-label="Manage roommates directory"
+                className="brutal-btn w-9 h-9 rounded-xl bg-white border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center hover:bg-amber-100 transition-colors"
               >
-                <Users className="w-3.5 h-3.5 text-black" />
+                <Users className="w-4 h-4 text-black" />
               </button>
             </div>
 
-            {/* Total Spent Big Counter */}
-            <div className="mt-5">
-              <div className="text-[11px] font-black uppercase tracking-wider text-black/80">
-                TOTAL POOL SPENT
-              </div>
-              <div className="flex items-baseline gap-3 mt-1">
-                <span className="text-4xl md:text-5xl font-black font-mono tracking-tight">
-                  {!isHydrated ? (
-                    <span className="inline-block w-36 h-10 bg-black/20 rounded animate-pulse" />
-                  ) : (
-                    <AnimatedCurrency value={totalPoolSpent} />
-                  )}
-                </span>
-                <span className="text-xs font-black bg-white border-2 border-black px-2 py-0.5 rounded-full shadow-[1.5px_1.5px_0_0_#000]">
-                  {!isHydrated ? (
-                    <span className="inline-block w-16 h-3 bg-zinc-200 rounded animate-pulse" />
-                  ) : (
-                    `${expenses.length} ${expenses.length === 1 ? "Expense" : "Expenses"}`
-                  )}
-                </span>
+            {/* Center: Primary Financial Headline answering "Where do I stand?" */}
+            <div className="mt-5 pt-4 border-t-2 border-black/15">
+              <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-2">
+                <div>
+                  <div className="text-[11px] font-black uppercase tracking-wider text-black/85">
+                    YOUR NET POSITION
+                  </div>
+                  <div className="flex items-baseline gap-2.5 mt-1">
+                    <span className="text-4xl md:text-5xl font-black font-mono tracking-tight text-black">
+                      {!isHydrated ? (
+                        <span className="inline-block w-36 h-10 bg-black/20 rounded animate-pulse" />
+                      ) : youNetBalance > 0 ? (
+                        <AnimatedCurrency value={youNetBalance} showSign prefix="₹" />
+                      ) : youNetBalance < 0 ? (
+                        <AnimatedCurrency value={Math.abs(youNetBalance)} prefix="-₹" />
+                      ) : (
+                        <span>₹0.00</span>
+                      )}
+                    </span>
+                    <span
+                      className={`text-xs font-black px-2.5 py-1 rounded-full border-2 border-black shadow-[1.5px_1.5px_0_0_#000] ${
+                        youNetBalance > 0
+                          ? "bg-[#2DD4BF] text-teal-950"
+                          : youNetBalance < 0
+                          ? "bg-rose-200 text-rose-950"
+                          : "bg-white text-zinc-900"
+                      }`}
+                    >
+                      {youNetBalance > 0
+                        ? "You are owed"
+                        : youNetBalance < 0
+                        ? "You owe money"
+                        : "All even"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-left sm:text-right">
+                  <div className="text-[11px] font-black uppercase tracking-wider text-black/80">
+                    TOTAL GROUP SPEND
+                  </div>
+                  <div className="text-xl md:text-2xl font-black font-mono text-black mt-0.5">
+                    {!isHydrated ? (
+                      <span className="inline-block w-24 h-6 bg-black/20 rounded animate-pulse" />
+                    ) : (
+                      formatINR(totalPoolSpent)
+                    )}
+                  </div>
+                  <div className="text-[11px] font-bold text-black/75">
+                    {expenses.length} {expenses.length === 1 ? "bill recorded" : "bills recorded"}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Split Balance Subcards inside Hero */}
+            {/* Split Balance Subcards inside Hero: Answers (1) How much do I owe? & (2) How much do people owe me? */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-5">
-              {/* You are owed */}
-              <div className="bg-white border-2 border-black rounded-xl p-3.5 shadow-[2px_2px_0_0_#000]">
-                <div className="flex items-center justify-between text-[11px] font-black text-zinc-600 uppercase">
-                  <span>YOU ARE OWED</span>
-                  <ArrowUpRight className="w-4 h-4 text-emerald-600" />
+              {/* You are owed card */}
+              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0_0_#000] flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-[11px] font-black text-zinc-600 uppercase">
+                    <span className="flex items-center gap-1">
+                      <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                      <span>PEOPLE OWE YOU</span>
+                    </span>
+                    <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 px-1.5 py-0.2 rounded border border-emerald-400 font-black">
+                      RECEIVABLE
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black font-mono text-emerald-600 mt-1">
+                    {!mounted ? (
+                      <span className="inline-block w-24 h-7 bg-zinc-200 rounded animate-pulse" />
+                    ) : (
+                      <AnimatedCurrency value={youOwed} showSign prefix="₹" />
+                    )}
+                  </div>
                 </div>
-                <div className="text-2xl font-black font-mono text-emerald-600 mt-0.5">
-                  {!mounted ? (
-                    <span className="inline-block w-24 h-7 bg-zinc-200 rounded animate-pulse" />
+                <div className="text-xs font-bold text-zinc-600 mt-2 truncate">
+                  {debtorsOwingYou.length > 0 ? (
+                    <span className="text-black font-extrabold">
+                      {debtorsOwingYou.map((d) => `${d.name} (${formatINR(d.amount)})`).join(", ")}
+                    </span>
                   ) : (
-                    <AnimatedCurrency value={youOwed} showSign prefix="₹" />
+                    "No pending receivables"
                   )}
-                </div>
-                <div className="text-[11px] font-bold text-zinc-600 mt-1 truncate">
-                  {debtorsOwingYou.length > 0
-                    ? `${debtorsOwingYou.join(" & ")} owe you`
-                    : "No pending receivables"}
                 </div>
               </div>
 
-              {/* You owe */}
-              <div className="bg-white border-2 border-black rounded-xl p-3.5 shadow-[2px_2px_0_0_#000]">
-                <div className="flex items-center justify-between text-[11px] font-black text-zinc-600 uppercase">
-                  <span>YOU OWE</span>
-                  <ArrowDownRight className="w-4 h-4 text-rose-600" />
+              {/* You owe card */}
+              <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0_0_#000] flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-[11px] font-black text-zinc-600 uppercase">
+                    <span className="flex items-center gap-1">
+                      <ArrowDownRight className="w-3.5 h-3.5 text-rose-600 stroke-[3]" />
+                      <span>YOU OWE OTHERS</span>
+                    </span>
+                    <span className="text-[10px] font-mono bg-rose-100 text-rose-800 px-1.5 py-0.2 rounded border border-rose-400 font-black">
+                      PAYABLE
+                    </span>
+                  </div>
+                  <div className="text-2xl font-black font-mono text-rose-600 mt-1">
+                    {!mounted ? (
+                      <span className="inline-block w-24 h-7 bg-zinc-200 rounded animate-pulse" />
+                    ) : youOwe > 0 ? (
+                      <AnimatedCurrency value={youOwe} prefix="-₹" />
+                    ) : (
+                      <span>₹0.00</span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-2xl font-black font-mono text-rose-600 mt-0.5">
-                  {!mounted ? (
-                    <span className="inline-block w-24 h-7 bg-zinc-200 rounded animate-pulse" />
-                  ) : youOwe > 0 ? (
-                    <AnimatedCurrency value={youOwe} prefix="-₹" />
+                <div className="text-xs font-bold text-zinc-600 mt-2 truncate">
+                  {creditorsYouOwe.length > 0 ? (
+                    <span className="text-black font-extrabold">
+                      {creditorsYouOwe.map((c) => `To ${c.name} (${formatINR(c.amount)})`).join(", ")}
+                    </span>
                   ) : (
-                    <span>₹0</span>
+                    "You are all clear of dues!"
                   )}
-                </div>
-                <div className="text-[11px] font-bold text-zinc-600 mt-1 truncate">
-                  {creditorsYouOwe.length > 0
-                    ? `To ${creditorsYouOwe.join(" & ")} for split dues`
-                    : "You are all clear of dues!"}
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Immediate Action Alert Banner: Answers "What should I do next?" */}
+          {immediateOweTransfer && immediateCreditor && (
+            <div className="bg-white border-2 border-black rounded-2xl p-4 sm:p-5 shadow-[3px_3px_0_0_#000] flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-l-8 border-l-[#FF7A00]">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="p-2.5 bg-[#FFEDD5] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000] shrink-0 mt-0.5 sm:mt-0">
+                  <CreditCard className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-sm text-black">
+                      Immediate Action Required
+                    </span>
+                    <span className="text-[9px] font-black uppercase bg-[#FED7AA] text-orange-950 px-1.5 py-0.2 rounded border border-black">
+                      DUE NOW
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-zinc-600 mt-1">
+                    Pay {formatINR(immediateOweTransfer.amount)} to{" "}
+                    <span className="text-black font-extrabold">{immediateCreditor.name}</span>{" "}
+                    via UPI (GPay • PhonePe • Paytm) to clear your share.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                <button
+                  onClick={() =>
+                    setActiveQrModal({
+                      isOpen: true,
+                      payeeName: immediateCreditor.name,
+                      upiId: immediateCreditor.upiId || "",
+                      amount: immediateOweTransfer.amount,
+                      transferId: immediateOweTransfer.id,
+                      isPaid: settledTransferIds.includes(immediateOweTransfer.id),
+                    })
+                  }
+                  className="brutal-btn bg-[#2DD4BF] text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-300 transition-all whitespace-nowrap"
+                >
+                  Pay {formatINR(immediateOweTransfer.amount)} via UPI →
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* 3 Stat Tiles Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {/* Tile 1: Roommates */}
             <div
               onClick={() => setIsRoommateModalOpen(true)}
-              className="bg-[#FAF8F5] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col justify-between cursor-pointer hover:bg-amber-50 transition-colors"
+              className="bg-[#FAF8F5] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col justify-between cursor-pointer hover:bg-amber-50/70 transition-colors"
             >
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-zinc-500 uppercase tracking-wider">
@@ -389,8 +535,8 @@ export default function DashboardPage() {
                     members.length
                   )}
                 </div>
-                <div className="flex -space-x-2 mt-2">
-                  {members.slice(0, 6).map((m) => (
+                <div className="flex -space-x-1.5 mt-2">
+                  {members.slice(0, 5).map((m) => (
                     <div
                       key={m.id}
                       title={m.name}
@@ -399,7 +545,15 @@ export default function DashboardPage() {
                       {m.initials}
                     </div>
                   ))}
+                  {members.length > 5 && (
+                    <div className="w-7 h-7 rounded-full border-2 border-black bg-zinc-200 text-black text-[10px] font-black flex items-center justify-center shadow-[1px_1px_0_0_#000]">
+                      +{members.length - 5}
+                    </div>
+                  )}
                 </div>
+              </div>
+              <div className="text-[10px] font-bold text-zinc-500">
+                Tap to manage & add UPI IDs
               </div>
             </div>
 
@@ -407,7 +561,7 @@ export default function DashboardPage() {
             <div className="bg-[#DDD6FE] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-purple-950 uppercase tracking-wider">
-                  TOTAL BILLS
+                  RECORDED BILLS
                 </span>
                 <Receipt className="w-4 h-4 text-purple-950" />
               </div>
@@ -420,16 +574,23 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div className="text-[11px] font-bold text-purple-900 mt-1">
-                  {expenses.length - settledTransferIds.length} Active • {settledTransferIds.length} Settled
+                  {expenses.length - settledTransferIds.length} active bills
                 </div>
               </div>
+              <Link
+                href="/add"
+                className="text-[10px] font-black text-purple-950 hover:underline flex items-center gap-1"
+              >
+                <span>+ Add another bill</span>
+                <span>→</span>
+              </Link>
             </div>
 
-            {/* Tile 3: Payments Needed */}
+            {/* Tile 3: Minimum Settlement Payments */}
             <div className="bg-[#2DD4BF] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-teal-950 uppercase tracking-wider">
-                  PAYMENTS NEEDED
+                  MIN PAYMENTS
                 </span>
                 <GitCommit className="w-4 h-4 text-teal-950" />
               </div>
@@ -442,80 +603,46 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div className="text-[11px] font-bold text-teal-900 mt-1">
-                  Fewest payments
+                  Settles all {members.length} roommates
                 </div>
               </div>
+              <Link
+                href="/settle"
+                className="text-[10px] font-black text-teal-950 hover:underline flex items-center gap-1"
+              >
+                <span>View settlement graph</span>
+                <span>→</span>
+              </Link>
             </div>
           </div>
 
-          {/* Immediate Room Tab Due Alert Banner (if you owe someone) */}
-          {immediateOweTransfer && immediateCreditor && (
-            <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-[#FFEDD5] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]">
-                  <CreditCard className="w-5 h-5 text-orange-600" />
-                </div>
-                <div>
-                  <div className="font-black text-sm text-black">
-                    Immediate Room Tab Due
-                  </div>
-                  <div className="text-xs font-bold text-zinc-600 mt-0.5">
-                    Pay {formatINR(immediateOweTransfer.amount)} to{" "}
-                    <span className="text-black font-extrabold">
-                      {immediateCreditor.name}
-                    </span>{" "}
-                    via UPI: GPay • PhonePe • Paytm
-                  </div>
-                </div>
+          {/* Demo Data Separation Indicator Banner */}
+          {hasDemoData && (
+            <div className="bg-[#FEF08A] border-2 border-black rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[2px_2px_0_0_#000]">
+              <div className="flex items-center gap-2 text-xs font-black text-amber-950">
+                <span className="text-base">{hasRealExpenses ? "⚡" : "🧪"}</span>
+                <span>
+                  {hasRealExpenses
+                    ? "Real Ledger Active: Sample demo expenses are isolated from your live debt calculation."
+                    : "Demo Mode Active: 4 roommates & 8 realistic expenses loaded across Food, Utilities, Groceries & Party."}
+                </span>
               </div>
-
               <button
-                onClick={() =>
-                  setActiveQrModal({
-                    isOpen: true,
-                    payeeName: immediateCreditor.name,
-                    upiId: immediateCreditor.upiId || "",
-                    amount: immediateOweTransfer.amount,
-                    transferId: immediateOweTransfer.id,
-                    isPaid: settledTransferIds.includes(
-                      immediateOweTransfer.id
-                    ),
-                  })
-                }
-                className="bg-[#2DD4BF] text-black font-black text-xs md:text-sm px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all whitespace-nowrap self-start sm:self-auto"
+                onClick={clearDemoData}
+                className="self-start sm:self-auto bg-white text-black font-black text-xs px-3.5 py-1.5 rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_0_#000] hover:bg-zinc-100 active:translate-y-0.5 transition-all whitespace-nowrap"
               >
-                Pay {formatINR(immediateOweTransfer.amount)} UPI →
+                Clear Demo Data
               </button>
             </div>
           )}
 
-          {/* Expenses Section */}
-          <div className="space-y-4 pt-2">
-            {/* Demo Data Indicator Banner */}
-            {hasDemoData && (
-              <div className="bg-[#FEF08A] border-2 border-black rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-[2px_2px_0_0_#000]">
-                <div className="flex items-center gap-2 text-xs font-black text-amber-950">
-                  <span className="text-base">{hasRealExpenses ? "⚡" : "🧪"}</span>
-                  <span>
-                    {hasRealExpenses
-                      ? "Real Settlement Active: Demo expenses are excluded from your real debt calculations."
-                      : "Demo Mode Active: 4 roommates & 8 sample expenses loaded across Food, Utilities, Groceries & Party."}
-                  </span>
-                </div>
-                <button
-                  onClick={clearDemoData}
-                  className="self-start sm:self-auto bg-white text-black font-black text-xs px-3 py-1.5 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0_0_#000] hover:bg-zinc-100 active:translate-y-0.5 transition-all whitespace-nowrap"
-                >
-                  Clear Demo Data
-                </button>
-              </div>
-            )}
-
+          {/* Recent Activity / Expenses Section */}
+          <div className="space-y-4 pt-1">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-black text-black">Expenses</h2>
-                <span className="bg-white border-2 border-black text-black text-xs font-black px-2 py-0.5 rounded-full shadow-[1.5px_1.5px_0_0_#000]">
-                  {expenses.length} Total
+                <h2 className="text-xl font-black text-black">Recent Activity</h2>
+                <span className="bg-white border-2 border-black text-black text-xs font-black px-2.5 py-0.5 rounded-full shadow-[1.5px_1.5px_0_0_#000]">
+                  {filteredExpenses.length} {filteredExpenses.length === 1 ? "Bill" : "Bills"}
                 </span>
               </div>
 
@@ -524,57 +651,102 @@ export default function DashboardPage() {
                 className="text-xs font-black text-zinc-700 hover:text-black flex items-center gap-1 hover:underline"
               >
                 <span>View Full Audit & Settle</span>
-                <span>&gt;</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
 
-            {/* Filter Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={`px-3 py-1.5 rounded-xl border-2 text-xs font-black whitespace-nowrap transition-all ${activeCategory === cat.id
-                    ? "bg-black text-white border-black shadow-[2px_2px_0_0_#000]"
-                    : "bg-white text-zinc-800 border-black hover:bg-zinc-100 shadow-[1px_1px_0_0_#000]"
+            {/* Search & Filter Toolbar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+              {/* Search input */}
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-2.5 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search bills, payers, categories..."
+                  className="w-full pl-9 pr-3 py-1.5 bg-white border-2 border-black rounded-xl text-xs font-bold text-black placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-[#FF7A00]"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-2 text-zinc-400 hover:text-black text-xs font-black"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+
+              {/* Category Filter Pills */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.id}
+                    onClick={() => setActiveCategory(cat.id)}
+                    className={`px-3 py-1.5 rounded-xl border-2 text-xs font-black whitespace-nowrap transition-all ${
+                      activeCategory === cat.id
+                        ? "bg-black text-white border-black shadow-[2px_2px_0_0_#000]"
+                        : "bg-white text-zinc-800 border-black hover:bg-zinc-100 shadow-[1px_1px_0_0_#000]"
                     }`}
-                >
-                  {cat.label}
-                </button>
-              ))}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Expenses List */}
+            {/* Expenses Feed */}
             <div className="space-y-3">
               {!isHydrated ? (
                 <div className="space-y-3 animate-pulse">
                   <div className="h-20 bg-white border-2 border-black rounded-2xl shadow-[3px_3px_0_0_#000]" />
                   <div className="h-20 bg-white border-2 border-black rounded-2xl shadow-[3px_3px_0_0_#000]" />
+                  <div className="h-20 bg-white border-2 border-black rounded-2xl shadow-[3px_3px_0_0_#000]" />
                 </div>
               ) : filteredExpenses.length === 0 ? (
                 <div className="bg-white border-2 border-dashed border-black rounded-2xl p-8 text-center shadow-[3px_3px_0_0_#000] space-y-3">
-                  <div className="text-sm font-black text-black">
-                    No expenses recorded in {roomName} yet.
+                  <div className="w-12 h-12 mx-auto bg-amber-50 border-2 border-black rounded-xl flex items-center justify-center">
+                    <Receipt className="w-6 h-6 text-zinc-700" />
                   </div>
-                  <p className="text-xs font-bold text-zinc-500">
-                    Add your first bill, dinner tab, or electricity split to see real-time balance calculations.
+                  <div className="text-sm font-black text-black">
+                    {searchQuery
+                      ? `No expenses matching "${searchQuery}"`
+                      : `No expenses recorded in ${roomName} yet.`}
+                  </div>
+                  <p className="text-xs font-bold text-zinc-500 max-w-sm mx-auto">
+                    {searchQuery
+                      ? "Try searching for a different term or resetting the category filter."
+                      : "Add your first canteen bill, dinner tab, or electricity split to see real-time balance calculations."}
                   </p>
                   <div className="flex items-center justify-center gap-3 pt-1">
-                    <Link
-                      href="/add"
-                      className="inline-flex items-center gap-1.5 bg-[#FF7A00] text-black font-black text-xs px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>+ Add First Expense</span>
-                    </Link>
-
-                    <button
-                      onClick={loadSampleData}
-                      className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-300 transition-all"
-                    >
-                      <RotateCw className="w-3.5 h-3.5" />
-                      <span>Load Demo Data</span>
-                    </button>
+                    {searchQuery ? (
+                      <button
+                        onClick={() => {
+                          setSearchQuery("");
+                          setActiveCategory("ALL");
+                        }}
+                        className="inline-flex items-center gap-1.5 bg-black text-white font-black text-xs px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]"
+                      >
+                        Clear Filters
+                      </button>
+                    ) : (
+                      <>
+                        <Link
+                          href="/add"
+                          className="inline-flex items-center gap-1.5 bg-[#FF7A00] text-black font-black text-xs px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>+ Add First Expense</span>
+                        </Link>
+                        <button
+                          onClick={loadSampleData}
+                          className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-300 transition-all"
+                        >
+                          <RotateCw className="w-3.5 h-3.5" />
+                          <span>Load Sample Data</span>
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -586,7 +758,7 @@ export default function DashboardPage() {
                     : 0;
                   const isUserPayer = youMember && expense.paidById === youMember.id;
 
-                  // Balance impact for user
+                  // Balance impact for current user
                   let impactBadge;
                   if (isUserPayer) {
                     const toRecover = expense.totalAmount - userShare;
@@ -642,7 +814,7 @@ export default function DashboardPage() {
                               {expense.title}
                             </span>
                             {expense.isDemo && (
-                              <span className="bg-[#FEF08A] text-amber-950 border border-black text-[9px] font-black px-1.5 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
+                              <span className="bg-[#FEF08A] text-amber-950 border border-black text-[9px] font-black px-1.5 py-0.2 rounded shadow-[1px_1px_0_0_#000]">
                                 DEMO
                               </span>
                             )}
@@ -654,10 +826,10 @@ export default function DashboardPage() {
                               {expense.splitMode === "item-wise"
                                 ? "Item-wise"
                                 : expense.splitMode === "equal"
-                                  ? `Equal (${members.length})`
-                                  : expense.splitMode === "shares"
-                                    ? "Shares"
-                                    : expense.splitMode}
+                                ? `Equal (${Object.keys(expense.splitDetails).length})`
+                                : expense.splitMode === "shares"
+                                ? "Shares"
+                                : expense.splitMode}
                             </span>
                           </div>
                           <div className="text-xs font-bold text-zinc-500 truncate mt-0.5">
@@ -665,8 +837,7 @@ export default function DashboardPage() {
                             <span className="text-black font-extrabold">
                               {payer?.isYou ? "You" : payer?.name?.split(" ")[0] || "Roomie"}
                             </span>{" "}
-                            • {Object.keys(expense.splitDetails).length} split •{" "}
-                            {expense.date}
+                            • {Object.keys(expense.splitDetails).length} in split • {expense.date}
                           </div>
                         </div>
                       </div>
@@ -695,8 +866,8 @@ export default function DashboardPage() {
                   Live simplified peer-to-peer balance graph
                 </div>
               </div>
-              <span className="bg-[#2DD4BF] text-black text-[10px] font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0_0_#000]">
-                Fewest payments
+              <span className="bg-[#2DD4BF] text-teal-950 text-[10px] font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0_0_#000]">
+                Fewest transfers
               </span>
             </div>
 
@@ -734,21 +905,23 @@ export default function DashboardPage() {
                           });
                         }
                       }}
-                      className={`p-3 rounded-xl border-2 border-black flex items-center justify-between cursor-pointer transition-all ${isPaid
-                        ? "bg-zinc-100 opacity-60"
-                        : "bg-[#FAF8F5] hover:bg-amber-50 shadow-[2px_2px_0_0_#000]"
-                        }`}
+                      className={`p-3 rounded-xl border-2 border-black flex items-center justify-between cursor-pointer transition-all ${
+                        isPaid
+                          ? "bg-zinc-100 opacity-60"
+                          : "bg-[#FAF8F5] hover:bg-amber-50 shadow-[2px_2px_0_0_#000]"
+                      }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <div
-                          className={`w-7 h-7 rounded-full border border-black ${debtor?.avatarBg || "bg-zinc-200"
-                            } text-black font-black text-xs flex items-center justify-center shrink-0`}
+                          className={`w-7 h-7 rounded-full border border-black ${
+                            debtor?.avatarBg || "bg-zinc-200"
+                          } text-black font-black text-xs flex items-center justify-center shrink-0`}
                         >
                           {debtor?.initials || "R"}
                         </div>
                         <div className="min-w-0">
                           <div className="text-xs font-black text-black truncate">
-                            {debtor?.name?.split(" ")[0]} ➔{" "}
+                            {debtor?.isYou ? "You" : debtor?.name?.split(" ")[0]} ➔{" "}
                             {creditor?.isYou ? "You" : creditor?.name?.split(" ")[0]}
                           </div>
                           <div className="text-[10px] font-bold text-zinc-500 truncate">
@@ -759,23 +932,25 @@ export default function DashboardPage() {
 
                       <div className="text-right shrink-0">
                         <div
-                          className={`text-xs font-black font-mono ${isPaid
-                            ? "text-zinc-500 line-through"
-                            : isYouCreditor
+                          className={`text-xs font-black font-mono ${
+                            isPaid
+                              ? "text-zinc-500 line-through"
+                              : isYouCreditor
                               ? "text-emerald-600"
                               : "text-rose-600"
-                            }`}
+                          }`}
                         >
                           {isYouCreditor ? "+" : "-"}
                           {formatINR(t.amount)}
                         </div>
                         <span
-                          className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${isPaid
-                            ? "bg-zinc-200 text-zinc-600 border-zinc-400"
-                            : isYouDebtor
+                          className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${
+                            isPaid
+                              ? "bg-zinc-200 text-zinc-600 border-zinc-400"
+                              : isYouDebtor
                               ? "bg-rose-100 text-rose-800 border-rose-800"
                               : "bg-emerald-100 text-emerald-800 border-emerald-800"
-                            }`}
+                          }`}
                         >
                           {isPaid ? "SETTLED ✓" : isYouDebtor ? "DUE TODAY" : "PENDING"}
                         </span>
@@ -786,7 +961,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* WHO PAYS WHOM */}
+            {/* WHO PAYS WHOM Flow */}
             <div className="p-3 bg-[#FAF8F5] border-2 border-black rounded-xl space-y-2">
               <div className="flex items-center justify-between text-[10px] font-black uppercase text-zinc-600">
                 <span>WHO PAYS WHOM</span>
@@ -805,7 +980,7 @@ export default function DashboardPage() {
                         {idx > 0 && <span className="font-black">➔</span>}
                         <div className="bg-white border border-black rounded px-2 py-1 shadow-[1px_1px_0_0_#000] shrink-0">
                           <div className="font-black text-black truncate max-w-[60px]">
-                            {from?.name?.split(" ")[0]}
+                            {from?.isYou ? "YOU" : from?.name?.split(" ")[0]}
                           </div>
                           <div className="text-rose-600 font-black">
                             -{formatINR(t.amount)}
@@ -869,7 +1044,7 @@ export default function DashboardPage() {
                       onClick={handleCopyNudge}
                       title="Copy reminder message"
                       aria-label="Copy reminder message"
-                      className="p-2 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] hover:bg-zinc-100"
+                      className="p-2 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] hover:bg-zinc-100 transition-colors"
                     >
                       {copiedNudge ? (
                         <CheckCircle className="w-4 h-4 text-emerald-600" />

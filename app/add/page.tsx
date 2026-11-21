@@ -21,6 +21,15 @@ import {
   UserPlus,
   RotateCw,
   MessageSquare,
+  Sparkles,
+  Utensils,
+  Home,
+  ShoppingBag,
+  Zap,
+  PartyPopper,
+  Package,
+  HelpCircle,
+  Coins,
 } from "lucide-react";
 import { formatINR } from "@/lib/utils";
 import { SplitMode, BillItem } from "@/types/ledger";
@@ -28,12 +37,22 @@ import { RoommateModal } from "@/components/RoommateModal";
 import { WhatsAppImportModal } from "@/components/WhatsAppImportModal";
 import { AnimatedCurrency } from "@/components/AnimatedCurrency";
 
+const CATEGORIES = [
+  { id: "Food", label: "Food & Meals", icon: Utensils, color: "bg-amber-100 text-amber-900 border-amber-400" },
+  { id: "Hostel", label: "Hostel & Room", icon: Home, color: "bg-blue-100 text-blue-900 border-blue-400" },
+  { id: "Groceries", label: "Groceries", icon: ShoppingBag, color: "bg-emerald-100 text-emerald-900 border-emerald-400" },
+  { id: "Utilities", label: "Utilities & WiFi", icon: Zap, color: "bg-yellow-100 text-yellow-900 border-yellow-400" },
+  { id: "Party", label: "Party & Outings", icon: PartyPopper, color: "bg-purple-100 text-purple-900 border-purple-400" },
+  { id: "Other", label: "Other Expense", icon: Package, color: "bg-zinc-100 text-zinc-900 border-zinc-400" },
+] as const;
+
 function AddExpenseForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { members, addExpense, roomName, loadSampleData } = useLedger();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const [isScanFocused, setIsScanFocused] = useState(false);
 
   // Auto-focus and scroll to scanner when arrived via "Scan" (/add?focus=scan)
@@ -51,12 +70,13 @@ function AddExpenseForm() {
 
   const youMember = members.find((m) => m.isYou) || members[0];
 
-  // Form State - Starts empty with clean slate
+  // Form State
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<"Food" | "Hostel" | "Groceries" | "Utilities" | "Party" | "Other">("Food");
   const [paidById, setPaidById] = useState<string>(youMember?.id || "");
-  const [splitMode, setSplitMode] = useState<SplitMode>("item-wise");
+  const [splitMode, setSplitMode] = useState<SplitMode>("equal");
   const [manualAmount, setManualAmount] = useState<number>(0);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const [isRoommateModalOpen, setIsRoommateModalOpen] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
 
@@ -67,7 +87,7 @@ function AddExpenseForm() {
     }
   }, [members, paidById, youMember]);
 
-  // Items State (Item-wise split) - starts empty
+  // Items State (Item-wise split)
   const [items, setItems] = useState<BillItem[]>([]);
 
   // Tax & Delivery Fee
@@ -127,7 +147,6 @@ function AddExpenseForm() {
     });
 
     if (splitMode === "item-wise") {
-      // 1. Calculate base item spend per member
       const memberItemSpend: Record<string, number> = {};
       members.forEach((m) => (memberItemSpend[m.id] = 0));
 
@@ -149,7 +168,6 @@ function AddExpenseForm() {
         }
       });
 
-      // 2. Add Tax and Delivery (either proportional to spend or equally)
       const extraFees = (Number(tax) || 0) + (Number(deliveryFee) || 0);
       const totalSpendAll = Object.values(memberItemSpend).reduce(
         (a, b) => a + b,
@@ -209,7 +227,20 @@ function AddExpenseForm() {
     unequalSplits,
   ]);
 
-  // Compress/resize image in browser using HTML canvas to max 1200px width and 0.8 JPEG quality
+  // Unequal split total check
+  const unequalAllocatedTotal = useMemo(() => {
+    return Object.values(unequalSplits).reduce((sum, v) => sum + (Number(v) || 0), 0);
+  }, [unequalSplits]);
+
+  const unequalRemaining = Math.round((totalAmount - unequalAllocatedTotal) * 100) / 100;
+
+  // Quick amount adder helper
+  const addQuickAmount = (delta: number) => {
+    if (splitMode === "item-wise") return;
+    setManualAmount((prev) => Math.max(0, (Number(prev) || 0) + delta));
+  };
+
+  // Compress/resize image in browser using HTML canvas
   const compressImage = async (file: File): Promise<Blob | File> => {
     if (!file.type.startsWith("image/")) {
       return file;
@@ -282,7 +313,7 @@ function AddExpenseForm() {
       const res = await fetch("/api/parse-bill", {
         method: "POST",
         body: formData,
-        signal: AbortSignal.timeout(45000), // 45s timeout
+        signal: AbortSignal.timeout(45000),
       });
 
       const json = await res.json();
@@ -319,6 +350,7 @@ function AddExpenseForm() {
             splitWith: members.map((m) => m.id),
           }));
           setItems(newItems);
+          setSplitMode("item-wise"); // auto switch to item-wise mode when receipt is scanned!
         }
 
         const modelTag = json.modelUsed ? ` via ${json.modelUsed}` : "";
@@ -377,26 +409,35 @@ function AddExpenseForm() {
 
   // Save & Split
   const handleSaveAndSplit = () => {
+    setValidationError(null);
+
     if (members.length === 0) {
-      alert("Please add at least 1 roommate to split bills with!");
+      setValidationError("Please add at least 1 roommate to split bills with!");
       setIsRoommateModalOpen(true);
       return;
     }
     if (!title.trim()) {
-      alert("Please provide an expense title.");
+      setValidationError("Please enter an expense title (e.g. Behrouz Biryani or Electricity Bill).");
+      titleInputRef.current?.focus();
       return;
     }
     if (title.trim().length > 100) {
-      alert("Expense title cannot exceed 100 characters.");
+      setValidationError("Expense title cannot exceed 100 characters.");
       return;
     }
     if (totalAmount <= 0) {
-      alert("Total amount must be greater than ₹0.");
+      setValidationError("Total amount must be greater than ₹0. Enter an amount or add bill items.");
       return;
     }
     if (totalAmount > 10_000_000 || isNaN(totalAmount)) {
-      alert("Total amount exceeds the allowable limit (₹1,00,00,000).");
+      setValidationError("Total amount exceeds the allowable limit (₹1,00,00,000).");
       return;
+    }
+
+    if (splitMode === "unequal" && Math.abs(unequalRemaining) > 0.5) {
+      if (!confirm(`Warning: Your custom splits leave ₹${Math.abs(unequalRemaining)} ${unequalRemaining > 0 ? "unallocated" : "overallocated"}. Do you still want to proceed?`)) {
+        return;
+      }
     }
 
     addExpense({
@@ -411,7 +452,7 @@ function AddExpenseForm() {
       items: splitMode === "item-wise" ? items : undefined,
       tax,
       deliveryFee,
-      note: "Added via Klear OCR Smart Splitter",
+      note: "Added via Klear Smart Splitter",
       verified: !!scanVerifiedMessage,
     });
 
@@ -419,14 +460,16 @@ function AddExpenseForm() {
   };
 
   const payerShare = liveSplitBreakdown.breakdown[paidById] || 0;
+  const toRecoverFromOthers = Math.max(0, totalAmount - payerShare);
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6">
+    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6 animate-fadeIn">
       {/* Top Navigation & Status */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Link
             href="/"
+            aria-label="Back to dashboard"
             className="w-9 h-9 rounded-xl border-2 border-black bg-white shadow-[2px_2px_0_0_#000] flex items-center justify-center hover:bg-zinc-100 transition-colors"
           >
             <ArrowLeft className="w-4 h-4 text-black" />
@@ -436,7 +479,7 @@ function AddExpenseForm() {
               Add Expense & Scan Bill
             </h1>
             <div className="text-xs font-bold text-zinc-600">
-              {roomName} • Automatic Tab Calculation
+              {roomName} • Automatic Split & Debt Minimization
             </div>
           </div>
         </div>
@@ -445,7 +488,7 @@ function AddExpenseForm() {
           <button
             type="button"
             onClick={() => setIsWhatsAppModalOpen(true)}
-            className="flex items-center gap-1.5 bg-[#25D366] text-black text-xs font-black px-3.5 py-1.5 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#000] active:translate-y-0.5 transition-all whitespace-nowrap"
+            className="flex items-center gap-1.5 bg-[#25D366] text-black text-xs font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-emerald-400 active:translate-y-0.5 transition-all whitespace-nowrap"
           >
             <MessageSquare className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Import WhatsApp Chat</span>
@@ -453,17 +496,33 @@ function AddExpenseForm() {
           {members.length === 0 && (
             <button
               onClick={() => setIsRoommateModalOpen(true)}
-              className="bg-[#FF7A00] text-black text-xs font-black px-3 py-1.5 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center gap-1.5"
+              className="bg-[#FF7A00] text-black text-xs font-black px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center gap-1.5"
             >
               <UserPlus className="w-3.5 h-3.5" />
               <span>+ Add Roommates First</span>
             </button>
           )}
-          <span className="bg-[#FAF8F5] border-2 border-black text-black text-[11px] font-black px-3 py-1 rounded-full shadow-[2px_2px_0_0_#000] whitespace-nowrap">
-            DRAFT AUTO-SAVED
+          <span className="bg-[#FAF8F5] border-2 border-black text-black text-[11px] font-black px-3 py-1 rounded-full shadow-[2px_2px_0_0_#000] whitespace-nowrap hidden sm:inline">
+            INSTANT SYNC
           </span>
         </div>
       </div>
+
+      {/* Validation Error Banner */}
+      {validationError && (
+        <div className="bg-[#FEE2E2] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex items-center justify-between gap-3 text-rose-950 animate-shake">
+          <div className="flex items-center gap-2.5">
+            <AlertTriangle className="w-5 h-5 text-rose-700 shrink-0" />
+            <span className="text-xs sm:text-sm font-black">{validationError}</span>
+          </div>
+          <button
+            onClick={() => setValidationError(null)}
+            className="p-1 hover:bg-rose-200 rounded border border-black shrink-0"
+          >
+            <X className="w-4 h-4 text-black" />
+          </button>
+        </div>
+      )}
 
       {/* Warning Banner if No Roommates Exist */}
       {members.length === 0 && (
@@ -475,15 +534,15 @@ function AddExpenseForm() {
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setIsRoommateModalOpen(true)}
-              className="bg-[#FF7A00] text-black font-black text-xs px-3 py-1.5 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0_0_#000]"
+              className="bg-[#FF7A00] text-black font-black text-xs px-3.5 py-1.5 rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_0_#000]"
             >
               + Add Roommate
             </button>
             <button
               onClick={loadSampleData}
-              className="bg-white text-black font-black text-xs px-3 py-1.5 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0_0_#000]"
+              className="bg-white text-black font-black text-xs px-3.5 py-1.5 rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_0_#000]"
             >
-              Load Room 402 Sample
+              Load Sample Data
             </button>
           </div>
         </div>
@@ -492,50 +551,176 @@ function AddExpenseForm() {
       {/* Main Grid: Form Left (8 cols) + Live Ledger Impact Right (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full min-w-0">
         <div className="lg:col-span-8 space-y-6 min-w-0">
-          {/* Prominent WhatsApp Import Card */}
-          <div className="bg-[#DCFCE7] border-2 border-black rounded-2xl p-4 shadow-[4px_4px_0_0_#000] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#25D366] border-2 border-black flex items-center justify-center text-black shadow-[1.5px_1.5px_0_0_#000] shrink-0">
-                <MessageSquare className="w-5 h-5 stroke-[2.5]" />
+          {/* Section 1: AMOUNT FIRST Hero Card */}
+          <div className="bg-white border-2 border-black rounded-3xl p-5 md:p-6 shadow-[4px_4px_0_0_#000] space-y-5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                1. AMOUNT & TITLE
+              </span>
+              <span className="bg-[#FF7A00] text-black text-[10px] font-black uppercase px-2 py-0.5 rounded border border-black shadow-[1px_1px_0_0_#000]">
+                PRIORITY INPUT
+              </span>
+            </div>
+
+            {/* Big Amount Input Field */}
+            <div className="bg-[#FAF8F5] border-2 border-black rounded-2xl p-4 shadow-[2px_2px_0_0_#000]">
+              <label htmlFor="expense-amount" className="text-[10px] font-black uppercase text-zinc-500 block mb-1">
+                TOTAL BILL AMOUNT
+              </label>
+              <div className="flex items-center gap-2">
+                <span className="text-3xl sm:text-4xl font-black font-mono text-black">
+                  ₹
+                </span>
+                <input
+                  id="expense-amount"
+                  type="number"
+                  inputMode="decimal"
+                  placeholder="0"
+                  value={totalAmount === 0 ? "" : totalAmount}
+                  readOnly={splitMode === "item-wise"}
+                  onChange={(e) => {
+                    if (splitMode !== "item-wise") {
+                      const val = Number(e.target.value);
+                      setManualAmount(isNaN(val) ? 0 : val);
+                      if (validationError) setValidationError(null);
+                    }
+                  }}
+                  className="w-full bg-transparent text-3xl sm:text-4xl font-black font-mono text-black focus:outline-none placeholder:text-zinc-300"
+                />
               </div>
-              <div>
-                <div className="text-xs md:text-sm font-black text-black flex items-center gap-2">
-                  <span>Have expenses in your WhatsApp group?</span>
-                  <span className="bg-black text-white text-[9px] font-black uppercase px-1.5 py-0.2 rounded">
-                    X-FACTOR
-                  </span>
+
+              {/* Quick Amount Add Pills for Students (+₹50, +₹100, +₹200, +₹500) */}
+              {splitMode !== "item-wise" && (
+                <div className="flex items-center gap-1.5 mt-3 pt-3 border-t border-dashed border-zinc-300 flex-wrap">
+                  <span className="text-[10px] font-bold text-zinc-500 mr-1">Quick add:</span>
+                  {[50, 100, 200, 500, 1000].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => addQuickAmount(amt)}
+                      className="px-2.5 py-1 bg-white hover:bg-amber-100 text-black text-xs font-black rounded-lg border border-black shadow-[1px_1px_0_0_#000] active:translate-y-0.5 transition-all"
+                    >
+                      +₹{amt}
+                    </button>
+                  ))}
+                  {manualAmount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setManualAmount(0)}
+                      className="px-2 py-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 text-xs font-bold rounded-lg border border-black transition-colors"
+                    >
+                      Clear
+                    </button>
+                  )}
                 </div>
-                <div className="text-[11px] font-bold text-emerald-950">
-                  Paste group messages in English, Hinglish or Punjabi — auto-extracts bills & exclusions in 1 click.
-                </div>
+              )}
+            </div>
+
+            {/* Expense Title */}
+            <div className="space-y-1.5">
+              <label htmlFor="expense-title" className="text-[10px] font-black uppercase text-zinc-500">
+                WHAT WAS THIS EXPENSE FOR?
+              </label>
+              <input
+                id="expense-title"
+                ref={titleInputRef}
+                type="text"
+                value={title}
+                placeholder="e.g. Behrouz Biryani, Canteen Lunch, Room 402 WiFi, Blinkit Snacks..."
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (validationError) setValidationError(null);
+                }}
+                className="w-full bg-[#FAF8F5] border-2 border-black rounded-xl px-3.5 py-2.5 text-sm font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#FF7A00]"
+              />
+            </div>
+
+            {/* Visual Category Chips Selector */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase text-zinc-500">
+                CATEGORY
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {CATEGORIES.map((cat) => {
+                  const Icon = cat.icon;
+                  const isSelected = category === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCategory(cat.id)}
+                      className={`flex items-center gap-2 p-2.5 rounded-xl border-2 font-bold text-xs transition-all ${
+                        isSelected
+                          ? "bg-black text-white border-black shadow-[2px_2px_0_0_#000] scale-[1.01]"
+                          : "bg-white text-zinc-800 border-black hover:bg-zinc-50 shadow-[1px_1px_0_0_#000]"
+                      }`}
+                    >
+                      <Icon className={`w-4 h-4 ${isSelected ? "text-[#FF7A00]" : "text-black"}`} />
+                      <span className="truncate">{cat.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setIsWhatsAppModalOpen(true)}
-              className="bg-[#25D366] hover:bg-emerald-400 text-black font-black text-xs px-4 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all whitespace-nowrap self-start sm:self-auto"
-            >
-              Paste Chat & Extract →
-            </button>
+
+            {/* Who Paid Dropdown / Chip */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex items-center justify-between text-[10px] font-black uppercase text-zinc-500">
+                <span>WHO PAID THE UPFRONT BILL?</span>
+                <button
+                  type="button"
+                  onClick={() => setIsRoommateModalOpen(true)}
+                  className="text-blue-700 hover:underline font-bold"
+                >
+                  + Add/Manage Roommates
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap">
+                {members.map((m) => {
+                  const isPayer = paidById === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setPaidById(m.id)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border-2 text-xs font-black transition-all ${
+                        isPayer
+                          ? "bg-[#2DD4BF] text-teal-950 border-black shadow-[2px_2px_0_0_#000]"
+                          : "bg-white text-zinc-700 border-black hover:bg-zinc-50 shadow-[1px_1px_0_0_#000]"
+                      }`}
+                    >
+                      <span className={`w-5 h-5 rounded-full border border-black ${m.avatarBg} text-black text-[10px] font-bold flex items-center justify-center`}>
+                        {m.initials}
+                      </span>
+                      <span>{m.isYou ? "You (Primary)" : m.name.split(" ")[0]}</span>
+                      {isPayer && <span>✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          {/* OCR AI Receipt Scanner Box */}
-          <div className="bg-[#FFEDD5] border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
-            {/* Top badges */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="bg-[#FF7A00] text-black border border-black text-[10px] font-black px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
-                SMART OCR CAMERA ENGINE
-              </span>
-              <span className="bg-white text-black border border-black text-[10px] font-black px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
-                AUTO-SCAN
+          {/* Section 2: SMART OCR RECEIPT SCANNER */}
+          <div className="bg-[#FFEDD5] border-2 border-black rounded-3xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2">
+                <span className="bg-[#FF7A00] text-black border border-black text-[10px] font-black px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
+                  GEMINI 3.0 MULTIMODAL OCR
+                </span>
+                <span className="text-xs font-black text-black">Scan Receipt / Invoice</span>
+              </div>
+              <span className="text-[10px] font-black uppercase bg-white border border-black px-2 py-0.5 rounded">
+                AUTO LINE-ITEMS
               </span>
             </div>
 
             <p className="text-xs font-bold text-zinc-700">
-              Auto-parses Zomato, Swiggy, Blinkit, Instamart & Canteen bills instantly
+              Auto-extracts food delivery, restaurant, grocery, or canteen bills into itemized line items with exact taxes & packaging charges.
             </p>
 
-            {/* Drag & Drop Area */}
+            {/* Hidden file input */}
             <input
               type="file"
               ref={fileInputRef}
@@ -544,6 +729,7 @@ function AddExpenseForm() {
               className="hidden"
             />
 
+            {/* Drag & Drop Area */}
             <div
               ref={scannerRef}
               tabIndex={0}
@@ -558,7 +744,7 @@ function AddExpenseForm() {
               onClick={() => {
                 if (!isScanning) fileInputRef.current?.click();
               }}
-              className={`relative overflow-hidden border-2 border-dashed border-black bg-white rounded-xl p-5 text-center transition-all shadow-[2px_2px_0_0_#000] space-y-2 brutal-card-interactive focus:ring-4 focus:ring-[#FF7A00] focus:outline-none ${
+              className={`relative overflow-hidden border-2 border-dashed border-black bg-white rounded-2xl p-5 text-center transition-all shadow-[2px_2px_0_0_#000] space-y-2 brutal-card-interactive focus:ring-4 focus:ring-[#FF7A00] focus:outline-none ${
                 isScanFocused
                   ? "ring-4 ring-[#FF7A00] ring-offset-2 bg-amber-50/80 scale-[1.01]"
                   : ""
@@ -566,7 +752,6 @@ function AddExpenseForm() {
                 isScanning ? "opacity-90 cursor-wait" : "cursor-pointer hover:bg-amber-50/50"
               }`}
             >
-              {/* Tap to Select Receipt badge on focus */}
               {isScanFocused && (
                 <div className="absolute top-2 right-2 bg-[#FF7A00] text-black text-[10px] font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0_0_#000] animate-bounce">
                   Tap to Select Receipt 📸
@@ -576,7 +761,7 @@ function AddExpenseForm() {
               {/* Receipt Scanner Laser Sweep Animation */}
               {isScanning && <div className="laser-scanline" />}
 
-              <div className="w-10 h-10 mx-auto bg-[#FFEDD5] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000] flex items-center justify-center">
+              <div className="w-11 h-11 mx-auto bg-[#FFEDD5] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000] flex items-center justify-center">
                 {isScanning ? (
                   <Loader2 className="w-5 h-5 text-black animate-spin" />
                 ) : (
@@ -587,34 +772,34 @@ function AddExpenseForm() {
                 <div className="text-sm font-black text-black">
                   {isScanning
                     ? "Scanning & extracting bill items..."
-                    : "Upload Bill Image or PDF"}
+                    : "Upload Receipt Image or Take Photo"}
                 </div>
                 <div className="text-[11px] font-bold text-zinc-500 mt-0.5">
                   {isScanning
-                    ? "Extracting line items, amounts, tax & fees from receipt..."
-                    : "Drag canteen receipt or browse photo (JPEG, PNG, WebP up to 4MB)"}
+                    ? "Extracting line items, amounts, tax & fees from invoice..."
+                    : "Supports Zomato, Swiggy, Blinkit, Instamart & Canteen bills (JPEG, PNG, WebP up to 4MB)"}
                 </div>
               </div>
 
               {!isScanning && (
                 <button
                   type="button"
-                  className="brutal-btn mt-2 inline-flex items-center gap-1.5 bg-[#FAF8F5] text-black text-xs font-black px-3 py-1.5 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-100"
+                  className="brutal-btn mt-1 inline-flex items-center gap-1.5 bg-[#FAF8F5] text-black text-xs font-black px-3.5 py-1.5 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-100"
                 >
                   <Camera className="w-3.5 h-3.5" />
-                  <span>Take Photo / Scan Camera</span>
+                  <span>Choose Photo / Camera</span>
                 </button>
               )}
             </div>
 
-            {/* Red Neo-Brutalist Error Banner */}
+            {/* Error Banner */}
             {scanErrorMessage && (
               <div className="bg-[#FEE2E2] border-2 border-black rounded-xl p-3.5 shadow-[3px_3px_0_0_#000] flex items-start justify-between gap-3 text-rose-950">
                 <div className="flex items-start gap-2.5">
                   <AlertTriangle className="w-5 h-5 text-rose-700 shrink-0 mt-0.5" />
                   <div>
                     <div className="text-xs font-black uppercase tracking-wide text-rose-900">
-                      OCR Scan Error (API Failure)
+                      OCR Scan Error
                     </div>
                     <div className="text-xs font-bold font-mono mt-1 break-all">
                       {scanErrorMessage}
@@ -631,9 +816,9 @@ function AddExpenseForm() {
               </div>
             )}
 
-            {/* Green Verified Banner */}
+            {/* Verified Banner */}
             {scanVerifiedMessage && (
-              <div className="bg-[#A7F3D0] border-2 border-black rounded-xl p-2.5 flex items-center justify-between shadow-[2px_2px_0_0_#000]">
+              <div className="bg-[#A7F3D0] border-2 border-black rounded-xl p-3 flex items-center justify-between shadow-[2px_2px_0_0_#000]">
                 <div className="flex items-center gap-2 text-xs font-black text-emerald-950">
                   <CheckCircle2 className="w-4 h-4 text-emerald-800 shrink-0" />
                   <span className="truncate">{scanVerifiedMessage}</span>
@@ -645,504 +830,457 @@ function AddExpenseForm() {
             )}
           </div>
 
-          {/* Expense Overview Card */}
-          <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-4">
+          {/* Section 3: SPLIT LOGIC SELECTOR */}
+          <div className="bg-white border-2 border-black rounded-3xl p-5 md:p-6 shadow-[4px_4px_0_0_#000] space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-black text-black">
-                Expense Overview
-              </h2>
-              <span className="text-[10px] font-black bg-zinc-200 border border-black px-2 py-0.5 rounded">
-                STEP 1 OF 2
+              <span className="text-[11px] font-black uppercase tracking-wider text-zinc-500">
+                2. SPLIT LOGIC
+              </span>
+              <span className="text-xs font-black text-black">
+                {splitMode.toUpperCase()} ALLOCATION
               </span>
             </div>
 
-            {/* Title & Total Amount row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="md:col-span-2 space-y-1">
-                <label className="text-[10px] font-black uppercase text-zinc-500">
-                  EXPENSE TITLE / DESCRIPTION
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={title}
-                    placeholder="e.g. Zomato Biryani, Canteen Lunch, WiFi..."
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-[#FAF8F5] border-2 border-black rounded-xl px-3 py-2 text-sm font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#FF7A00]"
-                  />
-                  <span className="absolute right-2.5 top-2.5 text-[9px] font-black uppercase bg-[#2DD4BF] border border-black px-1.5 py-0.5 rounded">
-                    {category}
-                  </span>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-[10px] font-black uppercase text-zinc-500">
-                  TOTAL AMOUNT (₹)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-2 text-sm font-black text-black">
-                    ₹
-                  </span>
-                  <input
-                    type="number"
-                    value={totalAmount}
-                    readOnly={splitMode === "item-wise"}
-                    onChange={(e) => {
-                      if (splitMode !== "item-wise") {
-                        setManualAmount(Number(e.target.value) || 0);
-                      }
-                    }}
-                    className="w-full bg-[#FAF8F5] border-2 border-black rounded-xl pl-7 pr-3 py-2 text-sm font-black font-mono text-black focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Who Paid Dropdown */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-[10px] font-black uppercase text-zinc-500">
-                <span>WHO PAID THIS BILL?</span>
-                <button
-                  type="button"
-                  onClick={() => setIsRoommateModalOpen(true)}
-                  className="text-blue-700 hover:underline"
-                >
-                  + Add/Manage Roommates
-                </button>
-              </div>
-              <select
-                value={paidById}
-                onChange={(e) => setPaidById(e.target.value)}
-                className="w-full bg-[#FAF8F5] border-2 border-black rounded-xl px-3 py-2 text-sm font-bold text-black focus:outline-none"
-              >
-                {members.length === 0 ? (
-                  <option value="">No roommates added yet</option>
-                ) : (
-                  members.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name} (Paid full {formatINR(totalAmount)} via {m.upiId})
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-
-            {/* Split Mode Selector Tabs */}
-            <div className="space-y-2 pt-2">
-              <div className="flex items-center justify-between text-[11px] font-black uppercase text-zinc-500">
-                <span>SELECT SPLIT LOGIC</span>
-                <span className="text-black">
-                  Selected: {splitMode.toUpperCase()} ALLOCATION
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { id: "equal", label: "Equal", icon: Scale },
-                  { id: "unequal", label: "Unequal ₹", icon: PieChart },
-                  { id: "shares", label: "Shares", icon: Layers },
-                  { id: "item-wise", label: "Item-wise", icon: Split },
-                ].map((mode) => {
-                  const Icon = mode.icon;
-                  const isSelected = splitMode === mode.id;
-                  return (
-                    <button
-                      key={mode.id}
-                      type="button"
-                      onClick={() => setSplitMode(mode.id as SplitMode)}
-                      className={`brutal-btn flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border-2 font-black text-xs transition-all whitespace-nowrap ${
-                        isSelected
-                          ? "bg-[#FF7A00] text-black border-black shadow-[3px_3px_0_0_#000] translate-x-0.5"
-                          : "bg-white text-zinc-700 border-black hover:bg-zinc-50 shadow-[1px_1px_0_0_#000]"
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5 stroke-[2.5]" />
-                      <span>{mode.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          {/* Subheader: Total Splitting Amount + Save Action */}
-          <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <div className="text-xl font-black font-mono text-black">
-                <AnimatedCurrency value={totalAmount} decimals={2} />
-              </div>
-              <div className="text-xs font-bold text-zinc-500">
-                {members.length} {members.length === 1 ? "roommate" : "roommates"} in {roomName}
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => alert("Draft saved.")}
-                className="brutal-btn px-3 py-2 text-xs font-black bg-zinc-100 hover:bg-zinc-200 border-2 border-black rounded-xl transition-colors shadow-[2px_2px_0_0_#000]"
-              >
-                Save as Draft
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveAndSplit}
-                className="brutal-btn flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs md:text-sm px-4 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-teal-300 transition-all whitespace-nowrap"
-              >
-                <span>Save & Split {formatINR(totalAmount)} →</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Mode-Specific Split UI */}
-          {splitMode === "item-wise" && (
-            <div className="space-y-4">
-              {items.length === 0 ? (
-                <div className="bg-white border-2 border-dashed border-black rounded-2xl p-8 text-center shadow-[2px_2px_0_0_#000] space-y-2">
-                  <div className="text-sm font-black text-black">
-                    No items on this bill yet
-                  </div>
-                  <div className="text-xs font-bold text-zinc-500">
-                    Upload a receipt image above to auto-extract items, or add items manually.
-                  </div>
+            {/* Mode Selector Tabs */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { id: "equal", label: "Equal Split", icon: Scale, desc: "Divide evenly" },
+                { id: "item-wise", label: "Item-wise", icon: Split, desc: "Line-by-line" },
+                { id: "unequal", label: "Unequal ₹", icon: PieChart, desc: "Exact amounts" },
+                { id: "shares", label: "Ratio Shares", icon: Layers, desc: "Ratio weighting" },
+              ].map((mode) => {
+                const Icon = mode.icon;
+                const isSelected = splitMode === mode.id;
+                return (
                   <button
+                    key={mode.id}
                     type="button"
-                    onClick={handleAddCustomItem}
-                    className="mt-2 inline-flex items-center gap-1.5 bg-[#FAF8F5] text-black text-xs font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-100"
+                    onClick={() => setSplitMode(mode.id as SplitMode)}
+                    className={`brutal-btn flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${
+                      isSelected
+                        ? "bg-[#FF7A00] text-black border-black shadow-[3px_3px_0_0_#000] translate-x-0.5"
+                        : "bg-white text-zinc-700 border-black hover:bg-zinc-50 shadow-[1px_1px_0_0_#000]"
+                    }`}
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>+ Add Custom Item</span>
+                    <Icon className="w-4 h-4 stroke-[2.5]" />
+                    <span className="font-black text-xs mt-1">{mode.label}</span>
+                    <span className="text-[10px] font-bold text-black/70 mt-0.5">{mode.desc}</span>
                   </button>
-                </div>
-              ) : (
-                items.map((item, idx) => {
-                  const count = item.splitWith.length;
-                  const perPerson = count > 0 ? item.amount / count : 0;
-                  const staggerClass = `receipt-stagger-${Math.min(idx + 1, 6)}`;
+                );
+              })}
+            </div>
 
-                  return (
-                    <div
-                      key={item.id}
-                      className={`bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] space-y-3 ${staggerClass}`}
+            {/* EQUAL SPLIT MODE CONTENT */}
+            {splitMode === "equal" && (
+              <div className="pt-2 space-y-3">
+                <div className="flex items-center justify-between text-xs font-black text-zinc-700">
+                  <span>Included Roommates in Split:</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const all: Record<string, boolean> = {};
+                        members.forEach((m) => (all[m.id] = true));
+                        setEqualIncluded(all);
+                      }}
+                      className="text-[11px] text-blue-700 hover:underline font-bold"
                     >
-                      {/* Item Header: Name, Tag, Subtotal */}
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <input
-                              type="text"
-                              value={item.name}
-                              onChange={(e) => {
-                                const val = e.target.value;
-                                setItems((prev) =>
-                                  prev.map((it) =>
-                                    it.id === item.id ? { ...it, name: val } : it
-                                  )
-                                );
-                              }}
-                              className="font-black text-sm md:text-base text-black bg-transparent border-b border-dashed border-zinc-400 focus:outline-none focus:border-black"
-                            />
-                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded border border-black bg-amber-100 text-amber-900">
-                              {item.tag || "ITEM"}
-                            </span>
-                          </div>
-                        </div>
+                      Select All
+                    </button>
+                    <span>•</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const none: Record<string, boolean> = {};
+                        members.forEach((m) => (none[m.id] = false));
+                        setEqualIncluded(none);
+                      }}
+                      className="text-[11px] text-zinc-500 hover:underline font-bold"
+                    >
+                      Deselect All
+                    </button>
+                  </div>
+                </div>
 
-                        <div className="flex items-center gap-2">
-                          <div className="text-right">
-                            <div className="flex items-center">
-                              <span className="text-sm font-black font-mono">₹</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {members.map((m) => {
+                    const isInc = equalIncluded[m.id];
+                    const activeCount = members.filter((x) => equalIncluded[x.id]).length || 1;
+                    const perHead = Math.round((totalAmount / activeCount) * 100) / 100;
+
+                    return (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() =>
+                          setEqualIncluded((prev) => ({
+                            ...prev,
+                            [m.id]: !prev[m.id],
+                          }))
+                        }
+                        className={`p-3 rounded-2xl border-2 font-black text-xs flex items-center justify-between transition-all ${
+                          isInc
+                            ? `${m.avatarBg} text-black border-black shadow-[2px_2px_0_0_#000]`
+                            : "bg-zinc-100 text-zinc-400 border-zinc-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-6 h-6 rounded-full bg-white/80 border border-black text-[10px] flex items-center justify-center font-bold">
+                            {m.initials}
+                          </span>
+                          <span className="truncate">{m.isYou ? "You" : m.name}</span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          {isInc ? (
+                            <span className="font-mono text-sm">{formatINR(perHead)}</span>
+                          ) : (
+                            <span className="text-zinc-400">Excluded</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ITEM-WISE SPLIT MODE CONTENT */}
+            {splitMode === "item-wise" && (
+              <div className="pt-2 space-y-4">
+                {items.length === 0 ? (
+                  <div className="bg-[#FAF8F5] border-2 border-dashed border-black rounded-2xl p-6 text-center space-y-2">
+                    <div className="text-sm font-black text-black">
+                      No line items on this bill yet
+                    </div>
+                    <div className="text-xs font-bold text-zinc-500">
+                      Upload a bill image above to auto-extract items, or add items manually below.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleAddCustomItem}
+                      className="mt-2 inline-flex items-center gap-1.5 bg-white text-black text-xs font-black px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-50"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Add Custom Item</span>
+                    </button>
+                  </div>
+                ) : (
+                  items.map((item, idx) => {
+                    const count = item.splitWith.length;
+                    const perPerson = count > 0 ? item.amount / count : 0;
+                    const staggerClass = `receipt-stagger-${Math.min(idx + 1, 6)}`;
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`bg-[#FAF8F5] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] space-y-3 ${staggerClass}`}
+                      >
+                        {/* Item Header: Name, Tag, Subtotal */}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <input
-                                type="number"
-                                value={item.amount}
+                                type="text"
+                                value={item.name}
                                 onChange={(e) => {
-                                  const amt = Number(e.target.value) || 0;
+                                  const val = e.target.value;
                                   setItems((prev) =>
                                     prev.map((it) =>
-                                      it.id === item.id ? { ...it, amount: amt } : it
+                                      it.id === item.id ? { ...it, name: val } : it
                                     )
                                   );
                                 }}
-                                className="w-16 text-right font-black font-mono text-sm md:text-base bg-zinc-50 border border-black rounded px-1 focus:outline-none"
+                                className="font-black text-sm md:text-base text-black bg-transparent border-b border-dashed border-zinc-400 focus:outline-none focus:border-black"
                               />
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded border border-black bg-amber-100 text-amber-900">
+                                {item.tag || "ITEM"}
+                              </span>
                             </div>
-                            <span className="text-[10px] font-bold text-zinc-500">
-                              Subtotal
-                            </span>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteItem(item.id)}
-                            title="Delete item"
-                            className="p-1 text-zinc-400 hover:text-rose-600 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <div className="text-right">
+                              <div className="flex items-center">
+                                <span className="text-sm font-black font-mono">₹</span>
+                                <input
+                                  type="number"
+                                  value={item.amount}
+                                  onChange={(e) => {
+                                    const amt = Number(e.target.value) || 0;
+                                    setItems((prev) =>
+                                      prev.map((it) =>
+                                        it.id === item.id ? { ...it, amount: amt } : it
+                                      )
+                                    );
+                                  }}
+                                  className="w-20 text-right font-black font-mono text-sm md:text-base bg-white border border-black rounded px-1.5 py-0.5 focus:outline-none"
+                                />
+                              </div>
+                              <span className="text-[10px] font-bold text-zinc-500">
+                                Subtotal
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteItem(item.id)}
+                              title="Delete item"
+                              aria-label="Delete item"
+                              className="p-1 text-zinc-400 hover:text-rose-600 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Split Among Roommate Chips */}
+                        <div className="space-y-1.5 pt-1 border-t border-dashed border-zinc-300">
+                          <div className="text-[10px] font-black uppercase text-zinc-500">
+                            SPLIT AMONG:
+                          </div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {members.map((m) => {
+                              const isIncluded = item.splitWith.includes(m.id);
+                              return (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() => toggleItemMember(item.id, m.id)}
+                                  className={`brutal-btn flex items-center gap-1.5 px-2.5 py-1 rounded-full border-2 text-xs font-black transition-all ${
+                                    isIncluded
+                                      ? `${m.avatarBg} text-black border-black shadow-[2px_2px_0_0_#000]`
+                                      : "bg-white text-zinc-400 border-dashed border-zinc-400 hover:border-black hover:text-black shadow-none"
+                                  }`}
+                                >
+                                  <span className="w-4 h-4 rounded-full bg-white/70 border border-black text-[9px] flex items-center justify-center font-bold">
+                                    {m.initials}
+                                  </span>
+                                  <span>{m.isYou ? "You" : m.name.split(" ")[0]}</span>
+                                  <span>{isIncluded ? "✓" : "+"}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <div className="text-[11px] font-bold text-zinc-500">
+                            {count > 0 ? (
+                              <>
+                                ₹{Math.round(perPerson)} / person ({count} {count === 1 ? "roommate" : "roommates"})
+                              </>
+                            ) : (
+                              <span className="text-rose-600">Select at least 1 roommate</span>
+                            )}
+                          </div>
                         </div>
                       </div>
+                    );
+                  })
+                )}
 
-                      {/* Split Among Roommate Chips */}
-                      <div className="space-y-1.5 pt-1 border-t border-dashed border-zinc-200">
-                        <div className="text-[10px] font-black uppercase text-zinc-500">
-                          SPLIT AMONG:
-                        </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {members.map((m) => {
-                            const isIncluded = item.splitWith.includes(m.id);
-                            return (
-                              <button
-                                key={m.id}
-                                type="button"
-                                onClick={() => toggleItemMember(item.id, m.id)}
-                                className={`brutal-btn flex items-center gap-1.5 px-2.5 py-1 rounded-full border-2 text-xs font-black transition-all ${
-                                  isIncluded
-                                    ? `${m.avatarBg} text-black border-black shadow-[2px_2px_0_0_#000]`
-                                    : "bg-white text-zinc-400 border-dashed border-zinc-400 hover:border-black hover:text-black shadow-none"
-                                }`}
-                              >
-                                <span className="w-4 h-4 rounded-full bg-white/70 border border-black text-[9px] flex items-center justify-center font-bold">
-                                  {m.initials}
-                                </span>
-                                <span>{m.isYou ? "You" : m.name.split(" ")[0]}</span>
-                                <span>{isIncluded ? "✓" : "+"}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
+                {items.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleAddCustomItem}
+                    className="w-full py-3 border-2 border-dashed border-black bg-white rounded-2xl font-black text-xs text-zinc-700 hover:bg-zinc-50 hover:text-black shadow-[2px_2px_0_0_#000] flex items-center justify-center gap-1.5 transition-all"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>+ Add Missing Item to Bill</span>
+                  </button>
+                )}
 
-                        {/* Subtext per person */}
-                        <div className="text-[11px] font-bold text-zinc-500">
-                          {count > 0 ? (
-                            <>
-                              ₹{Math.round(perPerson)} / person ({count} {count === 1 ? "mate" : "mates"})
-                            </>
-                          ) : (
-                            <span className="text-rose-600">Select at least 1 roommate</span>
-                          )}
-                        </div>
+                {/* Taxes & Extra Charges Card */}
+                <div className="bg-[#DDD6FE] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-xs uppercase text-purple-950">
+                      TAXES &amp; DELIVERY CHARGES
+                    </span>
+                    <span className="bg-white text-purple-950 border border-black text-[10px] font-black px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
+                      ₹{(Number(tax) || 0) + (Number(deliveryFee) || 0)} EXTRA
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="bg-white p-3 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]">
+                      <label htmlFor="tax-amt" className="text-[10px] font-black uppercase text-zinc-500 block mb-1">
+                        GST / Restaurant Tax
+                      </label>
+                      <div className="flex items-center">
+                        <span className="text-sm font-black mr-1">₹</span>
+                        <input
+                          id="tax-amt"
+                          type="number"
+                          value={tax}
+                          onChange={(e) => setTax(Number(e.target.value) || 0)}
+                          className="w-full font-black font-mono text-sm bg-transparent focus:outline-none"
+                        />
                       </div>
                     </div>
-                  );
-                })
-              )}
 
-              {/* Add Missing Custom Item Button */}
-              {items.length > 0 && (
-                <button
-                  type="button"
-                  onClick={handleAddCustomItem}
-                  className="w-full py-3 border-2 border-dashed border-black bg-white rounded-2xl font-black text-xs text-zinc-700 hover:bg-zinc-50 hover:text-black shadow-[2px_2px_0_0_#000] flex items-center justify-center gap-1.5 transition-all"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>+ Add Missing Custom Item</span>
-                </button>
-              )}
-
-              {/* Shared Extras & Tax Distribution Card */}
-              <div className="bg-[#DDD6FE] border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">📦</span>
-                    <h3 className="font-black text-sm md:text-base text-purple-950">
-                      Shared Extras & Tax Distribution
-                    </h3>
+                    <div className="bg-white p-3 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]">
+                      <label htmlFor="del-amt" className="text-[10px] font-black uppercase text-zinc-500 block mb-1">
+                        Delivery / Packaging Surge
+                      </label>
+                      <div className="flex items-center">
+                        <span className="text-sm font-black mr-1">₹</span>
+                        <input
+                          id="del-amt"
+                          type="number"
+                          value={deliveryFee}
+                          onChange={(e) => setDeliveryFee(Number(e.target.value) || 0)}
+                          className="w-full font-black font-mono text-sm bg-transparent focus:outline-none"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <span className="bg-white text-purple-950 border border-black text-[10px] font-black px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
-                    ₹{(Number(tax) || 0) + (Number(deliveryFee) || 0)} TOTAL EXTRA
+
+                  <div className="bg-white border-2 border-black rounded-xl p-3 shadow-[2px_2px_0_0_#000] flex items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      id="propTax"
+                      checked={proportionalTax}
+                      onChange={(e) => setProportionalTax(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 rounded border-2 border-black accent-[#FF7A00]"
+                    />
+                    <div>
+                      <label htmlFor="propTax" className="text-xs font-black text-black cursor-pointer">
+                        Split taxes &amp; delivery proportionally based on item spend (Recommended)
+                      </label>
+                      <p className="text-[11px] font-bold text-zinc-500 mt-0.5">
+                        Prevents roommates who ordered just a snack from paying high delivery penalties.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* UNEQUAL SPLIT MODE CONTENT */}
+            {splitMode === "unequal" && (
+              <div className="pt-2 space-y-3">
+                <div className="flex items-center justify-between text-xs font-black">
+                  <span>Enter Custom ₹ Amount per Roommate:</span>
+                  <span
+                    className={`font-mono text-xs px-2 py-0.5 rounded border border-black ${
+                      Math.abs(unequalRemaining) < 0.5
+                        ? "bg-[#2DD4BF] text-teal-950"
+                        : "bg-rose-100 text-rose-900"
+                    }`}
+                  >
+                    {Math.abs(unequalRemaining) < 0.5
+                      ? "100% Balanced ✓"
+                      : `₹${Math.abs(unequalRemaining)} ${unequalRemaining > 0 ? "remaining" : "over"}`}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="space-y-1 bg-white p-3 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]">
-                    <label className="text-[10px] font-black uppercase text-zinc-500">
-                      TAX - Restaurant GST
-                    </label>
-                    <div className="flex items-center">
-                      <span className="text-sm font-black mr-1">₹</span>
-                      <input
-                        type="number"
-                        value={tax}
-                        onChange={(e) => setTax(Number(e.target.value) || 0)}
-                        className="w-full font-black font-mono text-sm bg-transparent focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 bg-white p-3 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]">
-                    <label className="text-[10px] font-black uppercase text-zinc-500">
-                      DELIVERY FEE - Surge / Packaging
-                    </label>
-                    <div className="flex items-center">
-                      <span className="text-sm font-black mr-1">₹</span>
-                      <input
-                        type="number"
-                        value={deliveryFee}
-                        onChange={(e) => setDeliveryFee(Number(e.target.value) || 0)}
-                        className="w-full font-black font-mono text-sm bg-transparent focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Proportional Tax Checkbox */}
-                <div className="bg-white border-2 border-black rounded-xl p-3 shadow-[2px_2px_0_0_#000] flex items-start gap-2.5">
-                  <input
-                    type="checkbox"
-                    id="propTax"
-                    checked={proportionalTax}
-                    onChange={(e) => setProportionalTax(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded border-2 border-black accent-[#FF7A00]"
-                  />
-                  <div>
-                    <label
-                      htmlFor="propTax"
-                      className="text-xs font-black text-black cursor-pointer"
+                <div className="space-y-2">
+                  {members.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between bg-[#FAF8F5] border-2 border-black rounded-xl p-3"
                     >
-                      Split taxes & delivery proportionally based on item spend (Recommended)
-                    </label>
-                    <p className="text-[11px] font-bold text-zinc-500 mt-0.5">
-                      Prevents roommates who ordered just a coffee from paying a huge delivery penalty.
-                    </p>
-                  </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`w-6 h-6 rounded-full border border-black ${m.avatarBg} text-[10px] font-bold flex items-center justify-center`}>
+                          {m.initials}
+                        </span>
+                        <span className="font-black text-xs">{m.isYou ? "You" : m.name}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="font-bold text-xs mr-1">₹</span>
+                        <input
+                          type="number"
+                          value={unequalSplits[m.id] || 0}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            setUnequalSplits((prev) => ({
+                              ...prev,
+                              [m.id]: val,
+                            }));
+                          }}
+                          className="w-24 font-mono font-black text-right border-2 border-black rounded-lg px-2 py-1 bg-white text-xs focus:ring-2 focus:ring-[#FF7A00] focus:outline-none"
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Equal Split Mode */}
-          {splitMode === "equal" && (
-            <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
-              <h3 className="font-black text-sm text-black">
-                Select Roommates to Include in Equal Split
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                {members.map((m) => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() =>
-                      setEqualIncluded((prev) => ({
-                        ...prev,
-                        [m.id]: !prev[m.id],
-                      }))
-                    }
-                    className={`p-3 rounded-xl border-2 font-black text-xs flex items-center justify-between transition-all ${
-                      equalIncluded[m.id]
-                        ? `${m.avatarBg} text-black border-black shadow-[2px_2px_0_0_#000]`
-                        : "bg-zinc-100 text-zinc-400 border-zinc-300"
-                    }`}
-                  >
-                    <span>{m.name}</span>
-                    <span>{equalIncluded[m.id] ? "✓" : "—"}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+            {/* SHARES SPLIT MODE CONTENT */}
+            {splitMode === "shares" && (
+              <div className="pt-2 space-y-3">
+                <div className="text-xs font-black text-zinc-700">
+                  Set Weighting Shares (e.g. 2 shares for heavy consumers, 1 for light):
+                </div>
 
-          {/* Unequal Split Mode */}
-          {splitMode === "unequal" && (
-            <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
-              <h3 className="font-black text-sm text-black">
-                Specify Exact ₹ Amount per Roommate
-              </h3>
-              <div className="space-y-2">
-                {members.map((m) => (
-                  <div
-                    key={m.id}
-                    className="flex items-center justify-between bg-[#FAF8F5] border-2 border-black rounded-xl p-3"
-                  >
-                    <span className="font-black text-xs">{m.name}</span>
-                    <div className="flex items-center">
-                      <span className="font-bold text-xs mr-1">₹</span>
-                      <input
-                        type="number"
-                        value={unequalSplits[m.id] || 0}
-                        onChange={(e) => {
-                          const val = Number(e.target.value) || 0;
-                          setUnequalSplits((prev) => ({
-                            ...prev,
-                            [m.id]: val,
-                          }));
-                        }}
-                        className="w-20 font-mono font-black text-right border border-black rounded px-1.5 py-0.5 bg-white text-xs"
-                      />
+                <div className="space-y-2">
+                  {members.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center justify-between bg-[#FAF8F5] border-2 border-black rounded-xl p-3"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-6 h-6 rounded-full border border-black ${m.avatarBg} text-[10px] font-bold flex items-center justify-center`}>
+                          {m.initials}
+                        </span>
+                        <span className="font-black text-xs">{m.isYou ? "You" : m.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-zinc-500">Shares:</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={shares[m.id] || 0}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 0;
+                            setShares((prev) => ({
+                              ...prev,
+                              [m.id]: val,
+                            }));
+                          }}
+                          className="w-16 font-mono font-black text-center border-2 border-black rounded-lg px-2 py-1 bg-white text-xs focus:ring-2 focus:ring-[#FF7A00] focus:outline-none"
+                        />
+                        <span className="text-xs font-mono font-black text-zinc-600 min-w-[60px] text-right">
+                          {formatINR(liveSplitBreakdown.breakdown[m.id] || 0)}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-
-          {/* Shares Mode */}
-          {splitMode === "shares" && (
-            <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
-              <h3 className="font-black text-sm text-black">
-                Set Ratio Shares (e.g. 2:1:1:0)
-              </h3>
-              <div className="space-y-2">
-                {members.map((m) => (
-                  <div
-                    key={m.id}
-                    className="flex items-center justify-between bg-[#FAF8F5] border-2 border-black rounded-xl p-3"
-                  >
-                    <span className="font-black text-xs">{m.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold text-zinc-500">
-                        Shares:
-                      </span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={shares[m.id] || 0}
-                        onChange={(e) => {
-                          const val = Number(e.target.value) || 0;
-                          setShares((prev) => ({
-                            ...prev,
-                            [m.id]: val,
-                          }));
-                        }}
-                        className="w-16 font-mono font-black text-center border border-black rounded px-1.5 py-0.5 bg-white text-xs"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Right Sidebar: Live Ledger Impact */}
-        <div className="lg:col-span-4 space-y-6 min-w-0 lg:sticky lg:top-20 self-start">
-          <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-5">
+        <div className="lg:col-span-4 space-y-5 min-w-0 lg:sticky lg:top-20 self-start">
+          <div className="bg-white border-2 border-black rounded-3xl p-5 shadow-[4px_4px_0_0_#000] space-y-5">
             <div className="flex items-center justify-between">
-              <h3 className="font-black text-base text-black">
-                Live Ledger Impact
+              <h3 className="font-black text-base text-black flex items-center gap-1.5">
+                <Coins className="w-4 h-4 text-black" />
+                <span>Live Split Impact</span>
               </h3>
-              <span className="bg-[#2DD4BF] text-black text-[10px] font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0_0_#000]">
-                REALTIME
+              <span className="bg-[#2DD4BF] text-teal-950 text-[10px] font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0_0_#000]">
+                REAL-TIME
               </span>
             </div>
 
-            {/* You Are Paying */}
-            <div className="p-3 bg-[#FAF8F5] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]">
+            {/* Payer Summary */}
+            <div className="p-3.5 bg-[#FAF8F5] border-2 border-black rounded-2xl shadow-[2px_2px_0_0_#000]">
               <div className="text-[10px] font-black uppercase text-zinc-500">
-                YOU ARE PAYING
+                TOTAL CHARGED UPFRONT
               </div>
               <div className="text-2xl font-black font-mono text-black mt-0.5">
-                {formatINR(totalAmount)}.00
+                {formatINR(totalAmount)}
               </div>
-              <div className="text-[10px] font-bold text-zinc-500">
-                Charged initially to your UPI account
+              <div className="text-[11px] font-bold text-zinc-500 mt-0.5">
+                Paid by {members.find((m) => m.id === paidById)?.name || "Roommate"}
               </div>
             </div>
 
             {/* To be recovered from roommates */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <div className="text-[10px] font-black uppercase text-zinc-500 tracking-wider">
-                TO BE RECOVERED FROM ROOMMATES:
+                TO BE RECOVERED ({members.length - 1} ROOMMATES):
               </div>
 
               {members
@@ -1151,7 +1289,7 @@ function AddExpenseForm() {
                   const share = liveSplitBreakdown.breakdown[m.id] || 0;
                   const itemSummary =
                     liveSplitBreakdown.itemDetailsByMember[m.id]?.join(" + ") ||
-                    "Equal split";
+                    (splitMode === "equal" ? "Equal share" : "Calculated share");
 
                   return (
                     <div
@@ -1187,15 +1325,15 @@ function AddExpenseForm() {
                 })}
             </div>
 
-            {/* Your True Net Share */}
-            <div className="p-3 bg-[#FFEDD5] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]">
+            {/* Payer True Net Share */}
+            <div className="p-3.5 bg-[#FFEDD5] border-2 border-black rounded-2xl shadow-[2px_2px_0_0_#000]">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-[10px] font-black uppercase text-black/80">
-                    YOUR TRUE NET SHARE
+                    PAYER&apos;S TRUE SHARE
                   </div>
                   <div className="text-[10px] font-bold text-zinc-600">
-                    Net allocated expense share
+                    Net personal cost
                   </div>
                 </div>
                 <div className="text-2xl font-black font-mono text-black">
@@ -1216,20 +1354,17 @@ function AddExpenseForm() {
                 <div className="h-full bg-[#C084FC] w-[20%]" />
                 <div className="h-full bg-[#FBBF24] w-[20%]" />
               </div>
-              <div className="text-[10px] font-bold text-zinc-500 italic">
-                ⓘ Reminders auto-sent to WhatsApp {roomName} pod.
-              </div>
             </div>
 
-            {/* Pro Hosteller Tip */}
-            <div className="p-3 bg-[#FAF8F5] border-2 border-black rounded-xl space-y-1">
-              <div className="text-xs font-black text-black flex items-center gap-1">
-                <span>⚡</span> Pro Hosteller Tip
-              </div>
-              <p className="text-[11px] font-bold text-zinc-600 leading-relaxed">
-                Tap any roommate avatar on an item card to toggle them in or out
-                of that item in a single tap. Split fractions update instantly!
-              </p>
+            {/* Big Action Button */}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleSaveAndSplit}
+                className="brutal-btn w-full flex items-center justify-center gap-2 bg-[#FF7A00] hover:bg-orange-500 text-black font-black text-sm md:text-base py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] active:translate-y-0.5 transition-all"
+              >
+                <span>Save &amp; Settle {formatINR(totalAmount)} →</span>
+              </button>
             </div>
           </div>
         </div>

@@ -14,6 +14,7 @@ import {
   Plus,
   FolderPlus,
   X,
+  Layers,
 } from "lucide-react";
 import { RoommateModal } from "./RoommateModal";
 
@@ -98,7 +99,7 @@ export const Header: React.FC = () => {
       triggerToast("Please enter a group name");
       return;
     }
-    const createdId = createGroup(trimmed, newGroupIcon);
+    createGroup(trimmed, newGroupIcon);
     setNewGroupName("");
     setNewGroupIcon("👥");
     setIsCreatingNewGroup(false);
@@ -112,38 +113,42 @@ export const Header: React.FC = () => {
   };
 
   const handleClear = () => {
-    if (confirm("Reset / Clear All? This will wipe all roommates, expenses, and settlements from localStorage.")) {
+    if (confirm("Reset all data? This will wipe roommates, expenses, and settlements from your browser.")) {
       clearAllData();
-      triggerToast("Ledger reset to empty state!");
+      triggerToast("Ledger reset to clean state!");
     }
   };
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white border-b-2 border-black w-full max-w-full px-3 py-2 md:px-6 md:py-3 flex items-center justify-between gap-2 shadow-[0_2px_0_0_#000] overflow-visible">
+      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b-2 border-black w-full max-w-full px-3 py-2.5 sm:px-6 sm:py-3 flex items-center justify-between gap-2 shadow-[0_2px_0_0_#000] overflow-visible">
         {/* Left: Brand + Multi-Group Dropdown Menu */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0 shrink">
-          <Link href="/" className="flex items-center gap-1.5 sm:gap-2 group shrink-0">
-            <div className="bg-[#FF7A00] text-black font-black text-xs md:text-sm px-2 py-0.5 sm:px-2.5 sm:py-1 rounded border-2 border-black shadow-[2px_2px_0_0_#000] group-hover:rotate-3 transition-transform">
+        <div className="flex items-center gap-2 sm:gap-3.5 min-w-0 shrink">
+          <Link
+            href="/"
+            aria-label="Klear Home"
+            className="flex items-center gap-1.5 sm:gap-2 group shrink-0"
+          >
+            <div className="bg-[#FF7A00] text-black font-black text-xs sm:text-sm px-2.5 py-1 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] group-hover:rotate-3 transition-transform">
               K
             </div>
-            <span className="font-black text-base sm:text-lg md:text-2xl tracking-tight text-black flex items-center">
+            <span className="font-black text-lg sm:text-xl md:text-2xl tracking-tight text-black flex items-center">
               Kl<span className="text-[#FF7A00]">ear</span>
             </span>
           </Link>
 
-          <span className="text-zinc-300 font-bold hidden sm:inline">|</span>
+          <span className="text-zinc-300 font-bold hidden sm:inline select-none">|</span>
 
           {/* Group Dropdown Selector */}
           <div ref={dropdownRef} className="relative min-w-0">
             {!isHydrated ? (
-              <div className="h-[32px] sm:h-[34px] w-28 sm:w-44 bg-[#FAF8F5] border-2 border-black rounded-lg px-2 shadow-[2px_2px_0_0_#000] flex items-center gap-1.5 animate-pulse">
+              <div className="h-[34px] w-28 sm:w-44 bg-[#FAF8F5] border-2 border-black rounded-xl px-2.5 shadow-[2px_2px_0_0_#000] flex items-center gap-1.5 animate-pulse">
                 <span className="w-4 h-4 bg-zinc-300 rounded shrink-0" />
                 <span className="h-3 w-16 sm:w-24 bg-zinc-300 rounded" />
               </div>
             ) : isEditingName ? (
-              <div className="flex items-center gap-1 bg-[#FAF8F5] border-2 border-black rounded-lg px-2 py-0.5 shadow-[2px_2px_0_0_#000] min-w-0">
-                <span className="text-xs sm:text-sm">{activeGroup?.icon || "🛏️"}</span>
+              <div className="flex items-center gap-1.5 bg-[#FAF8F5] border-2 border-black rounded-xl px-2.5 py-1 shadow-[2px_2px_0_0_#000] min-w-0">
+                <span className="text-sm shrink-0">{activeGroup?.icon || "🛏️"}</span>
                 <input
                   ref={inputRef}
                   type="text"
@@ -152,7 +157,7 @@ export const Header: React.FC = () => {
                   onBlur={handleSaveName}
                   onKeyDown={handleKeyDown}
                   placeholder="Group name..."
-                  className="bg-transparent font-black text-xs md:text-sm text-black focus:outline-none w-24 sm:w-36 md:w-48"
+                  className="bg-transparent font-black text-xs md:text-sm text-black focus:outline-none w-28 sm:w-36 md:w-48"
                 />
                 <button
                   type="button"
@@ -160,7 +165,8 @@ export const Header: React.FC = () => {
                     e.preventDefault();
                     handleSaveName();
                   }}
-                  className="p-1 hover:bg-zinc-200 rounded shrink-0"
+                  aria-label="Save group name"
+                  className="p-1 hover:bg-zinc-200 rounded shrink-0 transition-colors"
                 >
                   <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
                 </button>
@@ -169,11 +175,13 @@ export const Header: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                title="Click to manage & switch friend groups"
-                className="group flex items-center gap-1.5 sm:gap-2 bg-[#FAF8F5] hover:bg-amber-50 border-2 border-black rounded-lg px-2 py-1 text-xs md:text-sm font-bold shadow-[2px_2px_0_0_#000] cursor-pointer transition-all active:translate-y-0.5 min-w-0 text-left"
+                aria-expanded={isDropdownOpen}
+                aria-haspopup="true"
+                title="Click to switch or manage groups"
+                className="group flex items-center gap-1.5 sm:gap-2 bg-[#FAF8F5] hover:bg-amber-50/80 border-2 border-black rounded-xl px-2.5 py-1 text-xs md:text-sm font-bold shadow-[2px_2px_0_0_#000] cursor-pointer transition-all active:translate-y-0.5 min-w-0 text-left"
               >
                 <span className="text-xs sm:text-sm shrink-0">{activeGroup?.icon || "🛏️"}</span>
-                <span className="truncate max-w-[95px] sm:max-w-[140px] md:max-w-[190px] text-black font-black">
+                <span className="truncate max-w-[105px] sm:max-w-[150px] md:max-w-[210px] text-black font-black">
                   {roomName}
                 </span>
                 <span className="text-zinc-500 font-bold text-[10px] sm:text-xs hidden md:inline">
@@ -197,13 +205,13 @@ export const Header: React.FC = () => {
                 <div className="flex items-center justify-between pb-2 border-b-2 border-black/10">
                   <div>
                     <div className="text-[11px] font-black uppercase tracking-wider text-black flex items-center gap-1.5">
-                      <span>FRIEND GROUPS</span>
-                      <span className="bg-[#2DD4BF] text-teal-950 px-1.5 py-0.2 rounded border border-black text-[9px] font-mono">
+                      <span>SHARED LEDGERS</span>
+                      <span className="bg-[#2DD4BF] text-teal-950 px-1.5 py-0.5 rounded border border-black text-[9px] font-mono font-bold">
                         {groups.length} Active
                       </span>
                     </div>
                     <p className="text-[10px] font-bold text-zinc-500 mt-0.5">
-                      Completely separate ledgers with zero overlap
+                      Isolated groups with independent balances
                     </p>
                   </div>
                   <button
@@ -223,6 +231,15 @@ export const Header: React.FC = () => {
                     return (
                       <div
                         key={grp.id}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            switchGroup(grp.id);
+                            setIsDropdownOpen(false);
+                            triggerToast(`Switched to "${grp.name}"!`);
+                          }
+                        }}
                         onClick={() => {
                           switchGroup(grp.id);
                           setIsDropdownOpen(false);
@@ -257,11 +274,11 @@ export const Header: React.FC = () => {
                           className="flex items-center gap-1 shrink-0 ml-2"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {/* Delete group (only if more than 1 group exists) */}
                           {groups.length > 1 && (
                             <button
                               type="button"
                               title={`Delete group "${grp.name}"`}
+                              aria-label={`Delete group "${grp.name}"`}
                               onClick={() => {
                                 if (
                                   confirm(
@@ -292,7 +309,7 @@ export const Header: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-black uppercase text-black flex items-center gap-1">
                         <FolderPlus className="w-3.5 h-3.5 text-[#FF7A00]" />
-                        <span>Create Friend Group</span>
+                        <span>Create Shared Group</span>
                       </span>
                       <button
                         type="button"
@@ -312,11 +329,11 @@ export const Header: React.FC = () => {
                             key={emoji}
                             type="button"
                             onClick={() => setNewGroupIcon(emoji)}
-                            className={`text-sm p-1 rounded-lg border ${
+                            className={`text-sm p-1 rounded-lg border transition-transform ${
                               newGroupIcon === emoji
                                 ? "bg-[#FF7A00] border-black shadow-[1.5px_1.5px_0_0_#000] scale-110"
                                 : "bg-white border-zinc-200 hover:border-black"
-                            } transition-transform`}
+                            }`}
                           >
                             {emoji}
                           </button>
@@ -335,14 +352,14 @@ export const Header: React.FC = () => {
                       />
                       <button
                         type="submit"
-                        className="bg-[#25D366] text-black font-black text-xs px-3 py-1.5 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0_0_#000] hover:bg-emerald-400 whitespace-nowrap active:translate-y-0.5"
+                        className="bg-[#25D366] text-black font-black text-xs px-3 py-1.5 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0_0_#000] hover:bg-emerald-400 whitespace-nowrap active:translate-y-0.5 transition-colors"
                       >
                         + Create
                       </button>
                     </div>
                   </form>
                 ) : (
-                  <div className="pt-1 border-t border-black/10 flex items-center justify-between">
+                  <div className="pt-1.5 border-t border-black/10 flex items-center justify-between">
                     <button
                       type="button"
                       onClick={() => {
@@ -369,43 +386,46 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Actions: Test Helpers & User Avatar */}
+        {/* Right Actions: Roommates, Demo Data, Reset */}
         {!isHydrated ? (
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 animate-pulse">
-            <div className="h-[31px] sm:h-[34px] w-8 sm:w-28 bg-[#FAF8F5] border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000]" />
-            <div className="h-[31px] sm:h-[34px] w-8 sm:w-36 bg-[#2DD4BF] border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000]" />
-            <div className="h-[31px] sm:h-[34px] w-8 sm:w-16 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000]" />
+            <div className="h-[34px] w-8 sm:w-28 bg-[#FAF8F5] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]" />
+            <div className="h-[34px] w-8 sm:w-32 bg-[#2DD4BF] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]" />
+            <div className="h-[34px] w-8 sm:w-16 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]" />
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
             {/* Roommates Directory Button */}
             <button
               onClick={() => setIsRoommateModalOpen(true)}
-              title="Manage Roommates"
-              className="inline-flex items-center gap-1 text-xs font-black bg-[#FAF8F5] text-black border-2 border-black rounded-lg p-1.5 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] hover:bg-amber-100 hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+              title="Manage Roommates & UPI IDs"
+              aria-label="Manage Roommates & UPI IDs"
+              className="inline-flex items-center gap-1.5 text-xs font-black bg-[#FAF8F5] text-black border-2 border-black rounded-xl p-2 sm:px-3 sm:py-1.5 shadow-[2px_2px_0_0_#000] hover:bg-amber-100 hover:translate-x-[0.5px] hover:translate-y-[0.5px] transition-all"
             >
               <Users className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Roommates</span>
-              <span className="bg-black text-white text-[10px] px-1.5 py-0.2 rounded-full">
+              <span className="bg-black text-white text-[10px] px-1.5 py-0.2 rounded-full font-mono">
                 {members.length}
               </span>
             </button>
 
-            {/* Load Demo Data Button (Compact icon on mobile, text on sm+) */}
+            {/* Load Demo Data Button */}
             <button
               onClick={handleResetSample}
-              title="Load realistic demo data"
-              className="inline-flex items-center gap-1 text-xs font-black bg-[#2DD4BF] text-black border-2 border-black rounded-lg p-1.5 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all whitespace-nowrap"
+              title="Load realistic sample data (Hostel 402 with 4 roommates and splits)"
+              aria-label="Load Demo Data"
+              className="inline-flex items-center gap-1.5 text-xs font-black bg-[#2DD4BF] text-black border-2 border-black rounded-xl p-2 sm:px-3 sm:py-1.5 shadow-[2px_2px_0_0_#000] hover:bg-teal-300 hover:translate-x-[0.5px] hover:translate-y-[0.5px] transition-all whitespace-nowrap"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Load Demo Data</span>
+              <span className="hidden sm:inline">Demo Data</span>
             </button>
 
-            {/* Reset / Clear All Button (Compact icon on mobile, text on sm+) */}
+            {/* Reset / Clear All Button */}
             <button
               onClick={handleClear}
-              title="Wipe localStorage and reset all data to empty"
-              className="inline-flex items-center gap-1 text-xs font-bold bg-white text-zinc-700 hover:text-rose-700 hover:bg-rose-50 border-2 border-black rounded-lg p-1.5 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] transition-colors whitespace-nowrap"
+              title="Clear all local data and reset ledger"
+              aria-label="Reset Ledger"
+              className="inline-flex items-center gap-1 text-xs font-bold bg-white text-zinc-700 hover:text-rose-700 hover:bg-rose-50 border-2 border-black rounded-xl p-2 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] transition-colors whitespace-nowrap"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Reset</span>
@@ -422,9 +442,9 @@ export const Header: React.FC = () => {
 
       {/* Quick feedback banner */}
       {showToast && (
-        <div className="fixed top-16 right-6 z-50 bg-[#2DD4BF] border-2 border-black text-black font-black px-4 py-2 rounded-xl shadow-[4px_4px_0_0_#000] flex items-center gap-2 animate-bounce">
-          <CheckCircle2 className="w-4 h-4" />
-          <span>{showToast}</span>
+        <div className="fixed top-16 right-4 sm:right-6 z-50 bg-[#2DD4BF] border-2 border-black text-black font-black px-4 py-2.5 rounded-xl shadow-[4px_4px_0_0_#000] flex items-center gap-2 animate-scaleUp">
+          <CheckCircle2 className="w-4 h-4 text-emerald-900 stroke-[3]" />
+          <span className="text-xs sm:text-sm">{showToast}</span>
         </div>
       )}
     </>
