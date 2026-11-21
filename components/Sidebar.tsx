@@ -28,28 +28,24 @@ export const Sidebar: React.FC = () => {
       href: "/",
       icon: Receipt,
       active: pathname === "/",
-      badge: null,
     },
     {
       label: "Settle Up",
       href: "/settle",
       icon: Scale,
       active: pathname === "/settle",
-      badge: "Min Debt",
     },
     {
-      label: "Add & OCR Bill",
+      label: "Add Expense",
       href: "/add",
       icon: Camera,
       active: pathname === "/add",
-      badge: "OCR",
     },
     {
       label: "Trip Planner",
       href: "/trip",
       icon: Compass,
       active: pathname === "/trip",
-      badge: "Trips",
     },
   ];
 
@@ -79,17 +75,6 @@ export const Sidebar: React.FC = () => {
                       <Icon className="w-4 h-4 stroke-[2.5]" />
                       <span>{item.label}</span>
                     </div>
-                    {item.badge && (
-                      <span
-                        className={`text-[10px] font-black px-1.5 py-0.5 rounded border border-black ${
-                          item.active
-                            ? "bg-white text-black"
-                            : "bg-[#2DD4BF] text-black"
-                        }`}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
                   </Link>
                 );
               })}
