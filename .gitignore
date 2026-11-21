@@ -1,8 +1,23 @@
-node_modules
-.next
-out
-.env*.local
+# Dependencies
+node_modules/
+
+# Next.js build output
+.next/
+out/
+
+# Environment files and secrets
+.env*
+!.env.example
+*.pem
+*.key
+
+# Vercel deployment metadata
+.vercel/
+
+# OS / logs
 .DS_Store
 *.log
+
+# Agent & workspace cache
 .agent
 .impeccable
