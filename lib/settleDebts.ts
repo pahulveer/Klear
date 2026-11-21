@@ -158,8 +158,17 @@ export function simplifySettlements(
 }
 
 /**
+ * Validates Indian UPI ID format (username@bank)
+ */
+export function isValidUpiId(upiId?: string): boolean {
+  if (!upiId) return false;
+  return /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z]{2,64}$/.test(upiId.trim());
+}
+
+/**
  * Builds a valid UPI deep link
  * Format: upi://pay?pa=...&pn=...&am=...&cu=INR&tn=...
+ * Encodes all parameters with encodeURIComponent
  */
 export function buildUpiLink({
   upiId,
@@ -167,18 +176,21 @@ export function buildUpiLink({
   amount,
   note = "Klear Room Tab Settlement",
 }: {
-  upiId: string;
+  upiId?: string;
   payeeName: string;
   amount: number;
   note?: string;
 }): string {
-  const cleanUpi = upiId.trim();
+  const cleanUpi = (upiId || "").trim();
   const cleanName = payeeName.trim();
   const formattedAmount = (Math.round(amount * 100) / 100).toFixed(2);
-  const encodedNote = encodeURIComponent(note);
-  const encodedName = encodeURIComponent(cleanName);
+  const encodedPa = encodeURIComponent(cleanUpi);
+  const encodedPn = encodeURIComponent(cleanName);
+  const encodedAm = encodeURIComponent(formattedAmount);
+  const encodedCu = encodeURIComponent("INR");
+  const encodedTn = encodeURIComponent(note);
 
-  return `upi://pay?pa=${cleanUpi}&pn=${encodedName}&am=${formattedAmount}&cu=INR&tn=${encodedNote}`;
+  return `upi://pay?pa=${encodedPa}&pn=${encodedPn}&am=${encodedAm}&cu=${encodedCu}&tn=${encodedTn}`;
 }
 
 /**

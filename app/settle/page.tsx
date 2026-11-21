@@ -202,7 +202,7 @@ export default function SettlePage() {
               </span>
             </div>
             <div className="text-xs font-bold text-zinc-600">
-              {roomName} • Algorithmic Debt Minimizer Active
+              {roomName} • Fewest Payments Minimizer Active
             </div>
           </div>
         </div>
@@ -292,7 +292,7 @@ export default function SettlePage() {
             </span>
           )}
           <span className="bg-black text-white text-[10px] px-2 py-0.5 rounded border border-black">
-            Σ Net Δ = 0
+            Everyone&apos;s even
           </span>
         </div>
       </div>
@@ -503,7 +503,7 @@ export default function SettlePage() {
                                 <span>{m.upiId}</span>
                                 <button
                                   type="button"
-                                  onClick={() => handleCopyText(m.upiId, m.id)}
+                                  onClick={() => handleCopyText(m.upiId || "", m.id)}
                                   title="Copy UPI ID"
                                   className="hover:text-black"
                                 >
@@ -792,7 +792,7 @@ export default function SettlePage() {
                             <div className="text-[11px] font-mono text-zinc-500 flex items-center gap-1">
                               <span className="truncate">{debtor.upiId}</span>
                               <button
-                                onClick={() => handleCopyText(debtor.upiId, debtor.id)}
+                                onClick={() => handleCopyText(debtor.upiId || "", debtor.id)}
                                 title="Copy UPI ID"
                                 className="hover:text-black"
                               >
@@ -839,72 +839,37 @@ export default function SettlePage() {
                       {/* Actions & Mark as Paid Row */}
                       <div className="pt-2 border-t border-dashed border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                          {isYouDebtor ? (
-                            <>
-                              <a
-                                href={upiLink}
-                                className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-                              >
-                                <span>Pay {creditor.name.split(" ")[0]} {formatINR(t.amount)} via UPI →</span>
-                              </a>
-
-                              <button
-                                onClick={() =>
-                                  setSelectedTransferForQr({
-                                    payeeName: creditor.name,
-                                    upiId: creditor.upiId,
-                                    amount: t.amount,
-                                    transferId: t.id,
-                                    isPaid: isSettled,
-                                  })
-                                }
-                                className="inline-flex items-center gap-1 bg-white text-black font-black text-xs px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-50"
-                              >
-                                <QrCode className="w-3.5 h-3.5" />
-                                <span>Show QR</span>
-                              </button>
-                            </>
+                          {creditor.upiId ? (
+                            <a
+                              href={upiLink}
+                              className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                            >
+                              <span>Pay {formatINR(t.amount)} to {creditor.name.split(" ")[0]} via UPI →</span>
+                            </a>
                           ) : (
-                            <>
-                              <a
-                                href={upiLink}
-                                className="brutal-btn inline-flex items-center gap-1.5 bg-[#FF7A00] text-black font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-orange-500 transition-all"
-                              >
-                                <span>Request via UPI</span>
-                              </a>
-
-                              <button
-                                onClick={() => {
-                                  navigator.clipboard.writeText(
-                                    `Bhai ${debtor.name.split(" ")[0]}, please clear tab of ${formatINR(
-                                      t.amount
-                                    )} for ${roomName} to ${creditor.upiId}`
-                                  );
-                                  alert("Payment request message copied to clipboard!");
-                                }}
-                                className="brutal-btn p-2 bg-white text-black font-black rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-50"
-                                title="Copy Payment Request"
-                              >
-                                <Share2 className="w-3.5 h-3.5" />
-                              </button>
-
-                              <button
-                                onClick={() =>
-                                  setSelectedTransferForQr({
-                                    payeeName: creditor.name,
-                                    upiId: creditor.upiId,
-                                    amount: t.amount,
-                                    transferId: t.id,
-                                    isPaid: isSettled,
-                                  })
-                                }
-                                className="brutal-btn p-2 bg-white text-black font-black rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-50"
-                                title="Show QR Code"
-                              >
-                                <QrCode className="w-3.5 h-3.5" />
-                              </button>
-                            </>
+                            <button
+                              onClick={() => setIsRoommateModalOpen(true)}
+                              className="inline-flex items-center gap-1.5 bg-[#FED7AA] text-orange-950 font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-orange-200 transition-all"
+                            >
+                              <span>+ Add UPI for {creditor.name.split(" ")[0]}</span>
+                            </button>
                           )}
+
+                          <button
+                            onClick={() =>
+                              setSelectedTransferForQr({
+                                payeeName: creditor.name,
+                                upiId: creditor.upiId || "",
+                                amount: t.amount,
+                                transferId: t.id,
+                                isPaid: isSettled,
+                              })
+                            }
+                            className="inline-flex items-center gap-1 bg-white text-black font-black text-xs px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-50"
+                          >
+                            <QrCode className="w-3.5 h-3.5" />
+                            <span>Show QR</span>
+                          </button>
                         </div>
 
                         {/* Mark as Paid Toggle Checkbox */}
@@ -991,26 +956,40 @@ export default function SettlePage() {
               </span>
             </div>
 
-            <p className="text-[11px] font-bold text-zinc-600">
-              Send a banter reminder with accurate debt breakdowns straight to the room group chat.
-            </p>
-
-            <div className="bg-[#FAF8F5] border-2 border-black rounded-xl p-3 text-xs font-mono font-bold text-zinc-800 shadow-[1px_1px_0_0_#000]">
-              <div className="text-[9px] font-black uppercase text-zinc-400 mb-1">
-                Preview message:
+            {pendingTransfers.length === 0 ? (
+              <div className="bg-emerald-50 border-2 border-emerald-600 rounded-xl p-3 text-center space-y-1">
+                <div className="text-xs font-black text-emerald-900 flex items-center justify-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+                  <span>All Tabs Settled!</span>
+                </div>
+                <p className="text-[11px] font-bold text-emerald-800">
+                  Everyone in {roomName} is fully even. No pending dues to nudge.
+                </p>
               </div>
-              &quot;{whatsappNudge.text}&quot;
-            </div>
+            ) : (
+              <>
+                <p className="text-[11px] font-bold text-zinc-600">
+                  Send a banter reminder with accurate debt breakdowns straight to the room group chat.
+                </p>
 
-            <a
-              href={whatsappNudge.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-[#2DD4BF] text-black font-black text-xs py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-            >
-              <Send className="w-3.5 h-3.5" />
-              <span>▷ Nudge on WhatsApp Group</span>
-            </a>
+                <div className="bg-[#FAF8F5] border-2 border-black rounded-xl p-3 text-xs font-mono font-bold text-zinc-800 shadow-[1px_1px_0_0_#000]">
+                  <div className="text-[9px] font-black uppercase text-zinc-400 mb-1">
+                    Preview message:
+                  </div>
+                  &quot;{whatsappNudge.text}&quot;
+                </div>
+
+                <a
+                  href={whatsappNudge.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-[#2DD4BF] text-black font-black text-xs py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>▷ Nudge on WhatsApp Group</span>
+                </a>
+              </>
+            )}
           </div>
 
           {/* Box 3: Audit History */}

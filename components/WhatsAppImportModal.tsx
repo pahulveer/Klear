@@ -220,8 +220,9 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 bg-white text-black rounded-xl border-2 border-black hover:bg-zinc-100 shadow-[2px_2px_0_0_#000] transition-colors"
+            className="p-1.5 bg-white text-black rounded-xl border-2 border-black hover:bg-zinc-100 shadow-[2px_2px_0_0_#000] transition-colors focus:ring-2 focus:ring-black focus:outline-none"
             title="Close"
+            aria-label="Close modal"
           >
             <X className="w-4 h-4" />
           </button>

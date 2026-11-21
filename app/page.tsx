@@ -45,6 +45,8 @@ export default function DashboardPage() {
     settledTransferIds,
     toggleSettleTransfer,
     loadSampleData,
+    clearDemoData,
+    hasDemoData,
     whatsappNudge,
     isHydrated,
   } = useLedger();
@@ -243,7 +245,7 @@ export default function DashboardPage() {
           </Link>
 
           <Link
-            href="/add"
+            href="/add?focus=scan"
             className="brutal-btn flex items-center gap-2 bg-white text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-zinc-50 transition-all whitespace-nowrap"
           >
             <Camera className="w-4 h-4" />
@@ -416,7 +418,7 @@ export default function DashboardPage() {
             <div className="bg-[#2DD4BF] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-teal-950 uppercase tracking-wider">
-                  MIN TABS
+                  PAYMENTS NEEDED
                 </span>
                 <GitCommit className="w-4 h-4 text-teal-950" />
               </div>
@@ -429,7 +431,7 @@ export default function DashboardPage() {
                   )}
                 </div>
                 <div className="text-[11px] font-bold text-teal-900 mt-1">
-                  Simplified Graph
+                  Fewest payments
                 </div>
               </div>
             </div>
@@ -461,7 +463,7 @@ export default function DashboardPage() {
                   setActiveQrModal({
                     isOpen: true,
                     payeeName: immediateCreditor.name,
-                    upiId: immediateCreditor.upiId,
+                    upiId: immediateCreditor.upiId || "",
                     amount: immediateOweTransfer.amount,
                     transferId: immediateOweTransfer.id,
                     isPaid: settledTransferIds.includes(
@@ -478,6 +480,22 @@ export default function DashboardPage() {
 
           {/* Expenses Section */}
           <div className="space-y-4 pt-2">
+            {/* Demo Data Indicator Banner */}
+            {hasDemoData && (
+              <div className="bg-[#FEF08A] border-2 border-black rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-[2px_2px_0_0_#000]">
+                <div className="flex items-center gap-2 text-xs font-black text-amber-950">
+                  <span className="text-base">🧪</span>
+                  <span>Demo Mode Active: 4 roommates &amp; 8 sample expenses loaded across Food, Utilities, Groceries &amp; Party.</span>
+                </div>
+                <button
+                  onClick={clearDemoData}
+                  className="self-start sm:self-auto bg-white text-black font-black text-xs px-3 py-1.5 rounded-lg border-2 border-black shadow-[1.5px_1.5px_0_0_#000] hover:bg-zinc-100 active:translate-y-0.5 transition-all whitespace-nowrap"
+                >
+                  Clear Demo Data
+                </button>
+              </div>
+            )}
+
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-black text-black">Expenses</h2>
@@ -537,10 +555,10 @@ export default function DashboardPage() {
 
                     <button
                       onClick={loadSampleData}
-                      className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]"
+                      className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-300 transition-all"
                     >
                       <RotateCw className="w-3.5 h-3.5" />
-                      <span>Load Sample Data</span>
+                      <span>Load Demo Data</span>
                     </button>
                   </div>
                 </div>
@@ -657,7 +675,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <span className="bg-[#2DD4BF] text-black text-[10px] font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0_0_#000]">
-                Algorithmic Min
+                Fewest payments
               </span>
             </div>
 
@@ -688,7 +706,7 @@ export default function DashboardPage() {
                           setActiveQrModal({
                             isOpen: true,
                             payeeName: creditor.name,
-                            upiId: creditor.upiId,
+                            upiId: creditor.upiId || "",
                             amount: t.amount,
                             transferId: t.id,
                             isPaid,
@@ -747,10 +765,10 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* NET TAB FLOW VECTOR */}
+            {/* WHO PAYS WHOM */}
             <div className="p-3 bg-[#FAF8F5] border-2 border-black rounded-xl space-y-2">
               <div className="flex items-center justify-between text-[10px] font-black uppercase text-zinc-600">
-                <span>NET TAB FLOW VECTOR</span>
+                <span>WHO PAYS WHOM</span>
                 <span className="text-[#059669]">
                   {pendingTransfers.length} Step{pendingTransfers.length === 1 ? "" : "s"} Path
                 </span>
@@ -786,8 +804,8 @@ export default function DashboardPage() {
                   })}
                 </div>
               ) : (
-                <div className="text-[11px] font-bold text-center text-zinc-400 py-1">
-                  Σ Net Δ = 0 (Ledger fully balanced)
+                <div className="text-[11px] font-bold text-center text-zinc-500 py-1">
+                  Everyone&apos;s even (Ledger fully balanced)
                 </div>
               )}
             </div>
@@ -799,33 +817,48 @@ export default function DashboardPage() {
                 <span>💬</span>
               </div>
 
-              <div className="bg-white border-2 border-black rounded-lg p-2.5 text-xs font-medium italic text-zinc-800 shadow-[1px_1px_0_0_#000]">
-                &quot;{whatsappNudge.text}&quot;
-              </div>
+              {pendingTransfers.length === 0 ? (
+                <div className="bg-emerald-50 border-2 border-emerald-600 rounded-lg p-3 text-center space-y-1">
+                  <div className="text-xs font-black text-emerald-900 flex items-center justify-center gap-1.5">
+                    <CheckCircle className="w-4 h-4 text-emerald-700" />
+                    <span>All Dues Settled!</span>
+                  </div>
+                  <p className="text-[11px] font-bold text-emerald-800">
+                    Everyone in {roomName} is even. No pending dues to nudge.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-white border-2 border-black rounded-lg p-2.5 text-xs font-medium italic text-zinc-800 shadow-[1px_1px_0_0_#000]">
+                    &quot;{whatsappNudge.text}&quot;
+                  </div>
 
-              <div className="flex items-center gap-2">
-                <a
-                  href={whatsappNudge.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs py-2 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Send WhatsApp Nudge</span>
-                </a>
+                  <div className="flex items-center gap-2">
+                    <a
+                      href={whatsappNudge.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs py-2 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>Send WhatsApp Nudge</span>
+                    </a>
 
-                <button
-                  onClick={handleCopyNudge}
-                  title="Copy reminder message"
-                  className="p-2 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] hover:bg-zinc-100"
-                >
-                  {copiedNudge ? (
-                    <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  ) : (
-                    <Copy className="w-4 h-4 text-black" />
-                  )}
-                </button>
-              </div>
+                    <button
+                      onClick={handleCopyNudge}
+                      title="Copy reminder message"
+                      aria-label="Copy reminder message"
+                      className="p-2 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] hover:bg-zinc-100"
+                    >
+                      {copiedNudge ? (
+                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-black" />
+                      )}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -9,7 +9,6 @@ import {
   Scale,
   Users,
   Settings,
-  PlusCircle,
   Camera,
   Coins,
   Compass,
@@ -102,17 +101,6 @@ export const Sidebar: React.FC = () => {
                 </span>
               </button>
             </nav>
-          </div>
-
-          {/* Quick Add CTA */}
-          <div className="pt-2">
-            <Link
-              href="/add"
-              className="w-full flex items-center justify-center gap-2 bg-[#FF7A00] text-black font-black text-sm py-2.5 px-3 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#000] transition-all"
-            >
-              <PlusCircle className="w-4 h-4 stroke-[2.5]" />
-              <span>+ Add New Expense</span>
-            </Link>
           </div>
         </div>
 

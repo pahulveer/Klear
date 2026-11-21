@@ -61,7 +61,8 @@ export const QRModal: React.FC<QRModalProps> = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg border-2 border-black bg-[#FAF8F5] hover:bg-zinc-200 shadow-[2px_2px_0_0_#000] transition-colors"
+          aria-label="Close modal"
+          className="absolute top-4 right-4 p-1.5 rounded-lg border-2 border-black bg-[#FAF8F5] hover:bg-zinc-200 shadow-[2px_2px_0_0_#000] transition-colors focus:ring-2 focus:ring-black focus:outline-none"
         >
           <X className="w-4 h-4 text-black" />
         </button>

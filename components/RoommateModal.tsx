@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useLedger } from "@/context/LedgerContext";
-import { X, UserPlus, Trash2, ShieldCheck, Check } from "lucide-react";
+import { X, UserPlus, Trash2, ShieldCheck, Check, AlertCircle, Edit2 } from "lucide-react";
+import { isValidUpiId } from "@/lib/settleDebts";
 
 interface RoommateModalProps {
   isOpen: boolean;
@@ -15,6 +16,12 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
   const [name, setName] = useState("");
   const [upiId, setUpiId] = useState("");
   const [isYou, setIsYou] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Quick edit UPI ID for existing member
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editingUpiValue, setEditingUpiValue] = useState("");
+  const [editError, setEditError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -31,17 +38,57 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    setErrorMessage(null);
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setErrorMessage("Please enter a roommate name.");
+      return;
+    }
+    if (trimmedName.length > 50) {
+      setErrorMessage("Roommate name cannot exceed 50 characters.");
+      return;
+    }
+
+    const trimmedUpi = upiId.trim();
+    if (trimmedUpi && !isValidUpiId(trimmedUpi)) {
+      setErrorMessage("Invalid UPI ID format. Example: rohan@oksbi or 9876543210@paytm");
+      return;
+    }
 
     addMember({
-      name: name.trim(),
-      upiId: upiId.trim() || undefined,
+      name: trimmedName,
+      upiId: trimmedUpi || undefined,
       isYou: isYou || members.length === 0,
     });
 
     setName("");
     setUpiId("");
     setIsYou(false);
+    setErrorMessage(null);
+  };
+
+  const handleSaveMemberUpi = (memberId: string) => {
+    setEditError(null);
+    const trimmed = editingUpiValue.trim();
+    if (trimmed && !isValidUpiId(trimmed)) {
+      setEditError("Invalid UPI ID format (e.g. name@oksbi)");
+      return;
+    }
+
+    const member = members.find((m) => m.id === memberId);
+    if (!member) return;
+
+    // Remove old and re-add or mutate member in context
+    deleteMember(memberId);
+    addMember({
+      name: member.name,
+      upiId: trimmed || undefined,
+      isYou: member.isYou,
+    });
+
+    setEditingMemberId(null);
+    setEditingUpiValue("");
   };
 
   return (
@@ -50,7 +97,8 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-lg border-2 border-black bg-[#FAF8F5] hover:bg-zinc-200 shadow-[2px_2px_0_0_#000] transition-colors"
+          aria-label="Close modal"
+          className="absolute top-4 right-4 p-1.5 rounded-lg border-2 border-black bg-[#FAF8F5] hover:bg-zinc-200 shadow-[2px_2px_0_0_#000] transition-colors focus:ring-2 focus:ring-black focus:outline-none"
         >
           <X className="w-4 h-4 text-black" />
         </button>
@@ -74,23 +122,46 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
             <span>+ Add New Roommate</span>
           </div>
 
-          <div className="space-y-2">
-            <input
-              type="text"
-              placeholder="Roommate Name (e.g. Rahul Sharma)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full bg-white border-2 border-black rounded-lg px-3 py-1.5 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#FF7A00]"
-              autoFocus
-            />
+          {errorMessage && (
+            <div className="bg-rose-50 border border-rose-500 rounded-lg p-2 text-rose-800 text-xs font-bold flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
-            <input
-              type="text"
-              placeholder="UPI ID (optional, e.g. rahul@okhdfcbank)"
-              value={upiId}
-              onChange={(e) => setUpiId(e.target.value)}
-              className="w-full bg-white border-2 border-black rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-black focus:outline-none"
-            />
+          <div className="space-y-2">
+            <div>
+              <label htmlFor="roommate-name" className="sr-only">Roommate Name</label>
+              <input
+                id="roommate-name"
+                type="text"
+                placeholder="Roommate Name (e.g. Rahul Sharma)"
+                value={name}
+                maxLength={50}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  if (errorMessage) setErrorMessage(null);
+                }}
+                className="w-full bg-white border-2 border-black rounded-lg px-3 py-1.5 text-xs font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#FF7A00]"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label htmlFor="roommate-upi" className="sr-only">UPI ID (optional)</label>
+              <input
+                id="roommate-upi"
+                type="text"
+                placeholder="UPI ID (optional, e.g. rahul@okhdfcbank)"
+                value={upiId}
+                maxLength={100}
+                onChange={(e) => {
+                  setUpiId(e.target.value);
+                  if (errorMessage) setErrorMessage(null);
+                }}
+                className="w-full bg-white border-2 border-black rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-black focus:outline-none focus:ring-2 focus:ring-[#FF7A00]"
+              />
+            </div>
 
             {members.length > 0 && (
               <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 select-none pt-1">
@@ -107,7 +178,7 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
 
           <button
             type="submit"
-            className="w-full py-2 bg-[#FF7A00] text-black font-black text-xs rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+            className="w-full py-2 bg-[#FF7A00] text-black font-black text-xs rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] active:translate-y-0.5 transition-all focus:ring-2 focus:ring-black focus:outline-none"
           >
             Add Roommate to Group
           </button>
@@ -129,13 +200,13 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
                 key={m.id}
                 className="flex items-center justify-between p-2.5 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div
                     className={`w-7 h-7 rounded-full border border-black ${m.avatarBg} text-black font-black text-xs flex items-center justify-center shrink-0`}
                   >
                     {m.initials}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-xs font-black text-black truncate flex items-center gap-1.5">
                       <span>{m.name}</span>
                       {m.isYou && (
@@ -144,9 +215,55 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
                         </span>
                       )}
                     </div>
-                    <div className="text-[10px] font-mono text-zinc-500 truncate">
-                      {m.upiId}
-                    </div>
+
+                    {editingMemberId === m.id ? (
+                      <div className="flex items-center gap-1.5 pt-1">
+                        <input
+                          type="text"
+                          placeholder="e.g. name@oksbi"
+                          value={editingUpiValue}
+                          onChange={(e) => setEditingUpiValue(e.target.value)}
+                          className="text-[10px] font-mono font-bold border border-black rounded px-1.5 py-0.5 w-36 bg-amber-50"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSaveMemberUpi(m.id)}
+                          className="bg-[#2DD4BF] text-black font-black text-[10px] px-2 py-0.5 rounded border border-black"
+                        >
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingMemberId(null)}
+                          className="text-[10px] font-bold text-zinc-500"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] font-mono text-zinc-500 truncate flex items-center gap-1">
+                        <span>{m.upiId || "No UPI set"}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingMemberId(m.id);
+                            setEditingUpiValue(m.upiId || "");
+                          }}
+                          title="Edit UPI ID"
+                          aria-label={`Edit UPI ID for ${m.name}`}
+                          className="text-zinc-400 hover:text-black p-0.5"
+                        >
+                          <Edit2 className="w-2.5 h-2.5" />
+                        </button>
+                      </div>
+                    )}
+
+                    {editError && editingMemberId === m.id && (
+                      <div className="text-[9px] font-bold text-rose-600 mt-0.5">
+                        {editError}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -154,7 +271,8 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
                   type="button"
                   onClick={() => deleteMember(m.id)}
                   title="Remove roommate"
-                  className="p-1.5 text-zinc-400 hover:text-rose-600 rounded transition-colors"
+                  aria-label={`Remove ${m.name}`}
+                  className="p-1.5 text-zinc-400 hover:text-rose-600 rounded transition-colors focus:ring-1 focus:ring-rose-500"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -166,7 +284,7 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
         {/* Done Button */}
         <button
           onClick={onClose}
-          className="w-full py-2.5 bg-[#2DD4BF] text-black font-black text-xs rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-400 transition-colors"
+          className="w-full py-2.5 bg-[#2DD4BF] text-black font-black text-xs rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-400 transition-colors focus:ring-2 focus:ring-black focus:outline-none"
         >
           Done
         </button>

@@ -42,6 +42,7 @@ function AddExpenseForm() {
       setIsScanFocused(true);
       if (scannerRef.current) {
         scannerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+        scannerRef.current.focus();
       }
       const timer = setTimeout(() => setIsScanFocused(false), 3500);
       return () => clearTimeout(timer);
@@ -385,8 +386,16 @@ function AddExpenseForm() {
       alert("Please provide an expense title.");
       return;
     }
+    if (title.trim().length > 100) {
+      alert("Expense title cannot exceed 100 characters.");
+      return;
+    }
     if (totalAmount <= 0) {
       alert("Total amount must be greater than ₹0.");
+      return;
+    }
+    if (totalAmount > 10_000_000 || isNaN(totalAmount)) {
+      alert("Total amount exceeds the allowable limit (₹1,00,00,000).");
       return;
     }
 
@@ -537,10 +546,19 @@ function AddExpenseForm() {
 
             <div
               ref={scannerRef}
+              tabIndex={0}
+              role="button"
+              aria-label="Upload and scan bill receipt"
+              onKeyDown={(e) => {
+                if ((e.key === "Enter" || e.key === " ") && !isScanning) {
+                  e.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
               onClick={() => {
                 if (!isScanning) fileInputRef.current?.click();
               }}
-              className={`relative overflow-hidden border-2 border-dashed border-black bg-white rounded-xl p-5 text-center transition-all shadow-[2px_2px_0_0_#000] space-y-2 brutal-card-interactive ${
+              className={`relative overflow-hidden border-2 border-dashed border-black bg-white rounded-xl p-5 text-center transition-all shadow-[2px_2px_0_0_#000] space-y-2 brutal-card-interactive focus:ring-4 focus:ring-[#FF7A00] focus:outline-none ${
                 isScanFocused
                   ? "ring-4 ring-[#FF7A00] ring-offset-2 bg-amber-50/80 scale-[1.01]"
                   : ""
@@ -574,7 +592,7 @@ function AddExpenseForm() {
                 <div className="text-[11px] font-bold text-zinc-500 mt-0.5">
                   {isScanning
                     ? "Extracting line items, amounts, tax & fees from receipt..."
-                    : "Drag canteen receipt or browse photo (JPG, PNG, PDF up to 10MB)"}
+                    : "Drag canteen receipt or browse photo (JPEG, PNG, WebP up to 4MB)"}
                 </div>
               </div>
 

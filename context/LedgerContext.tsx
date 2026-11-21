@@ -112,7 +112,9 @@ interface LedgerContextType {
   deleteExpense: (id: string) => void;
   toggleSettleTransfer: (transferId: string) => void;
   loadSampleData: () => void;
+  clearDemoData: () => void;
   clearAllData: () => void;
+  hasDemoData: boolean;
   netBalances: Record<string, number>;
   detailedBalances: NetBalance[];
   simplifiedTransfers: SimplifiedTransfer[];
@@ -794,6 +796,46 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
+  const clearDemoData = () => {
+    // Only remove expenses explicitly flagged as demo; NEVER delete user expenses
+    const nonDemoExpenses = expenses.filter((e) => !e.isDemo);
+
+    // Identify member IDs that are referenced by real user expenses
+    const referencedMemberIds = new Set<string>();
+    nonDemoExpenses.forEach((e) => {
+      referencedMemberIds.add(e.paidById);
+      Object.keys(e.splitDetails || {}).forEach((mid) => referencedMemberIds.add(mid));
+    });
+
+    // Keep members that are not demo or are actively used by real expenses
+    const remainingMembers = members.filter(
+      (m) => !m.isDemo || referencedMemberIds.has(m.id)
+    );
+
+    // Keep non-sample trips
+    const nonDemoTrips = trips.filter((t) => !t.id.startsWith("trip-sample-"));
+
+    setExpenses(nonDemoExpenses);
+    setMembers(remainingMembers);
+    setTrips(nonDemoTrips);
+    if (activeTripId.startsWith("trip-sample-")) {
+      setActiveTripId(nonDemoTrips[0]?.id || "");
+    }
+
+    setGroups((prev) =>
+      prev.map((g) =>
+        g.id === activeGroupId
+          ? {
+              ...g,
+              members: remainingMembers,
+              expenses: nonDemoExpenses,
+              trips: nonDemoTrips,
+            }
+          : g
+      )
+    );
+  };
+
   const clearAllData = () => {
     const defaultName = "My Hostel Group";
     setRoomNameState(defaultName);
@@ -871,7 +913,9 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
         deleteExpense,
         toggleSettleTransfer,
         loadSampleData,
+        clearDemoData,
         clearAllData,
+        hasDemoData: expenses.some((e) => e.isDemo),
         netBalances,
         detailedBalances,
         simplifiedTransfers,
