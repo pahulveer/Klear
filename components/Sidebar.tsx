@@ -51,20 +51,24 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      <aside className="hidden md:flex flex-col w-64 bg-white border-r-2 border-black p-4 min-h-[calc(100vh-61px)] justify-between select-none">
+      <aside
+        aria-label="Primary sidebar"
+        className="hidden md:flex flex-col w-64 bg-white border-r-2 border-black p-4 min-h-[calc(100vh-61px)] justify-between select-none"
+      >
         {/* Top Navigation */}
         <div className="space-y-6">
           <div>
             <div className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-2 px-2">
               WORKSPACE
             </div>
-            <nav className="space-y-1.5">
+            <nav aria-label="Workspace navigation" className="space-y-1.5">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.label}
                     href={item.href}
+                    aria-current={item.active ? "page" : undefined}
                     className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl border-2 font-bold text-sm transition-all ${
                       item.active
                         ? "bg-[#FF7A00] text-black border-black shadow-[3px_3px_0_0_#000] translate-x-[2px]"

@@ -11,17 +11,16 @@ export async function POST(req: NextRequest) {
     const vibe = body.vibe || "Budget Hostel";
     const memberCount = Math.max(1, Number(body.memberCount) || 4);
 
-    // If no API key is available, return an intelligent fallback plan immediately
+    // If no API key is available, return real error
     if (!apiKey) {
-      console.warn("GEMINI_API_KEY is missing, generating offline fallback trip plan");
-      return NextResponse.json({
-        success: true,
-        modelUsed: "offline-template",
-        destination,
-        days,
-        vibe,
-        items: getFallbackItems(destination, days, vibe, memberCount),
-      });
+      console.error("GEMINI_API_KEY is missing in environment variables.");
+      return NextResponse.json(
+        {
+          success: false,
+          error: "GEMINI_API_KEY is not configured in the server environment.",
+        },
+        { status: 500 }
+      );
     }
 
     const prompt = `You are a travel budget planner for Indian college roommates on a hostel trip.
@@ -64,7 +63,14 @@ Respond ONLY with valid JSON using this exact schema:
       },
     };
 
-    const modelsToTry = ["gemini-3.0-flash", "gemini-3-flash-preview"];
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const modelsToTry = [
+      "gemini-3.0-flash",
+      "gemini-2.5-flash-lite",
+      "gemini-2.0-flash",
+      "gemini-3-flash-preview",
+    ];
     let response: Response | null = null;
     let result: any = null;
     let usedModel = "";
@@ -73,58 +79,88 @@ Respond ONLY with valid JSON using this exact schema:
       const model = modelsToTry[i];
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(45000), // 45s timeout
-        });
+      // For gemini-3.0-flash, allow up to 2 attempts (initial + 1 retry after 1.5s on 503/429)
+      const maxAttempts = model === "gemini-3.0-flash" ? 2 : 1;
 
-        const data = await res.json();
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(45000), // 45s timeout
+          });
 
-        if (
-          res.status === 404 ||
-          data.error?.code === 404 ||
-          data.error?.status === "NOT_FOUND"
-        ) {
-          console.warn(`Model ${model} returned 404, falling back...`);
-          if (i < modelsToTry.length - 1) continue;
+          const data = await res.json();
+          const statusCode = res.status;
+          const errorCode = data.error?.code || statusCode;
+          const isRateLimitOrUnavailable =
+            statusCode === 429 ||
+            statusCode === 503 ||
+            errorCode === 429 ||
+            errorCode === 503 ||
+            data.error?.status === "RESOURCE_EXHAUSTED" ||
+            data.error?.status === "UNAVAILABLE";
+
+          const isNotFound =
+            statusCode === 404 ||
+            errorCode === 404 ||
+            data.error?.status === "NOT_FOUND";
+
+          if (isRateLimitOrUnavailable && attempt < maxAttempts) {
+            console.warn(`Model ${model} hit ${statusCode || errorCode}, retrying in 1.5s (attempt ${attempt}/${maxAttempts})...`);
+            await delay(1500);
+            continue;
+          }
+
+          if ((isRateLimitOrUnavailable || isNotFound) && i < modelsToTry.length - 1) {
+            console.warn(`Model ${model} failed with ${statusCode || errorCode}, falling back to next model...`);
+            break; // Break attempt loop to advance model
+          }
+
+          response = res;
+          result = data;
+          usedModel = model;
+          break;
+        } catch (err: any) {
+          console.warn(`Attempt ${attempt} with ${model} failed:`, err?.message);
+          if (attempt < maxAttempts) {
+            await delay(1500);
+            continue;
+          }
+          if (i < modelsToTry.length - 1) break;
+          throw err;
         }
+      }
 
-        response = res;
-        result = data;
-        usedModel = model;
-        break;
-      } catch (err: any) {
-        console.warn(`Attempt with ${model} failed:`, err?.message);
-        if (i < modelsToTry.length - 1) continue;
-        throw err;
+      if (response && response.ok && result && !result.error) {
+        break; // Successfully got response
       }
     }
 
     if (!response || !result || !response.ok || result.error) {
-      console.warn("Gemini call failed, falling back to smart template:", result?.error);
-      return NextResponse.json({
-        success: true,
-        modelUsed: "offline-fallback",
-        destination,
-        days,
-        vibe,
-        items: getFallbackItems(destination, days, vibe, memberCount),
-      });
+      const errorMsg =
+        result?.error?.message ||
+        `Gemini API request failed with status ${response?.status || 500}`;
+      console.error("Gemini Plan Trip Error:", errorMsg);
+      return NextResponse.json(
+        {
+          success: false,
+          error: errorMsg,
+        },
+        { status: 500 }
+      );
     }
 
     const candidateText = result.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!candidateText) {
-      return NextResponse.json({
-        success: true,
-        modelUsed: "offline-fallback",
-        destination,
-        days,
-        vibe,
-        items: getFallbackItems(destination, days, vibe, memberCount),
-      });
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Gemini did not return any plan content.",
+        },
+        { status: 500 }
+      );
     }
 
     const cleanedText = candidateText
@@ -158,52 +194,4 @@ Respond ONLY with valid JSON using this exact schema:
       { status: 500 }
     );
   }
-}
-
-function getFallbackItems(
-  destination: string,
-  days: number,
-  vibe: string,
-  members: number
-) {
-  const stayCostPerNight = vibe === "Comfort" ? 2400 : vibe === "Standard" ? 1600 : 900;
-  const foodPerPersonDay = vibe === "Comfort" ? 800 : vibe === "Standard" ? 500 : 350;
-
-  return [
-    {
-      id: `fb-1`,
-      title: `${destination} Hostel Stays (${days} Nights)`,
-      category: "Hostel / Stay",
-      estimatedAmount: stayCostPerNight * days * Math.max(1, Math.ceil(members / 2)),
-      costType: "fixed" as const,
-    },
-    {
-      id: `fb-2`,
-      title: "Shared Cab / Outstation Vehicle & Fuel",
-      category: "Transport",
-      estimatedAmount: 2500 * days,
-      costType: "fixed" as const,
-    },
-    {
-      id: `fb-3`,
-      title: `Cafe Meals, Chai & Maggi (${members} Roommates)`,
-      category: "Food & Drink",
-      estimatedAmount: foodPerPersonDay * days * members,
-      costType: "variable" as const,
-    },
-    {
-      id: `fb-4`,
-      title: "Local Sightseeing, Entry Permits & Guides",
-      category: "Activities",
-      estimatedAmount: 600 * members,
-      costType: "fixed" as const,
-    },
-    {
-      id: `fb-5`,
-      title: "Roadtrip Munchies, Campfire & Midnight Snacks",
-      category: "Groceries",
-      estimatedAmount: 300 * members,
-      costType: "variable" as const,
-    },
-  ];
 }

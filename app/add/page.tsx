@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLedger } from "@/context/LedgerContext";
 import {
   ArrowLeft,
@@ -28,10 +28,25 @@ import { RoommateModal } from "@/components/RoommateModal";
 import { WhatsAppImportModal } from "@/components/WhatsAppImportModal";
 import { AnimatedCurrency } from "@/components/AnimatedCurrency";
 
-export default function AddExpensePage() {
+function AddExpenseForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { members, addExpense, roomName, loadSampleData } = useLedger();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scannerRef = useRef<HTMLDivElement>(null);
+  const [isScanFocused, setIsScanFocused] = useState(false);
+
+  // Auto-focus and scroll to scanner when arrived via "Scan" (/add?focus=scan)
+  useEffect(() => {
+    if (searchParams.get("focus") === "scan") {
+      setIsScanFocused(true);
+      if (scannerRef.current) {
+        scannerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      const timer = setTimeout(() => setIsScanFocused(false), 3500);
+      return () => clearTimeout(timer);
+    }
+  }, [searchParams]);
 
   const youMember = members.find((m) => m.isYou) || members[0];
 
@@ -521,13 +536,25 @@ export default function AddExpensePage() {
             />
 
             <div
+              ref={scannerRef}
               onClick={() => {
                 if (!isScanning) fileInputRef.current?.click();
               }}
               className={`relative overflow-hidden border-2 border-dashed border-black bg-white rounded-xl p-5 text-center transition-all shadow-[2px_2px_0_0_#000] space-y-2 brutal-card-interactive ${
+                isScanFocused
+                  ? "ring-4 ring-[#FF7A00] ring-offset-2 bg-amber-50/80 scale-[1.01]"
+                  : ""
+              } ${
                 isScanning ? "opacity-90 cursor-wait" : "cursor-pointer hover:bg-amber-50/50"
               }`}
             >
+              {/* Tap to Select Receipt badge on focus */}
+              {isScanFocused && (
+                <div className="absolute top-2 right-2 bg-[#FF7A00] text-black text-[10px] font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0_0_#000] animate-bounce">
+                  Tap to Select Receipt 📸
+                </div>
+              )}
+
               {/* Receipt Scanner Laser Sweep Animation */}
               {isScanning && <div className="laser-scanline" />}
 
@@ -1070,7 +1097,7 @@ export default function AddExpensePage() {
         </div>
 
         {/* Right Sidebar: Live Ledger Impact */}
-        <div className="lg:col-span-4 space-y-6 min-w-0">
+        <div className="lg:col-span-4 space-y-6 min-w-0 lg:sticky lg:top-20 self-start">
           <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-5">
             <div className="flex items-center justify-between">
               <h3 className="font-black text-base text-black">
@@ -1200,5 +1227,20 @@ export default function AddExpensePage() {
         onClose={() => setIsWhatsAppModalOpen(false)}
       />
     </div>
+  );
+}
+
+export default function AddExpensePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6 animate-pulse p-4">
+          <div className="h-10 w-48 bg-zinc-200 border-2 border-black rounded-xl" />
+          <div className="h-64 bg-white border-2 border-black rounded-2xl" />
+        </div>
+      }
+    >
+      <AddExpenseForm />
+    </Suspense>
   );
 }

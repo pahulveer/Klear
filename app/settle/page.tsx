@@ -925,7 +925,7 @@ export default function SettlePage() {
         </div>
 
         {/* Right Column: Direct UPI QR + WhatsApp Nudge + Audit History */}
-        <div className="lg:col-span-4 space-y-5 min-w-0">
+        <div className="lg:col-span-4 space-y-5 min-w-0 lg:sticky lg:top-20 self-start">
           {/* Box 1: Direct UPI QR */}
           <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3 text-center">
             <div className="flex items-center justify-between text-xs font-black">

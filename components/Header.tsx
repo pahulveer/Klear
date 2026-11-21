@@ -32,6 +32,7 @@ export const Header: React.FC = () => {
     switchGroup,
     createGroup,
     deleteGroup,
+    isHydrated,
   } = useLedger();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -107,7 +108,7 @@ export const Header: React.FC = () => {
 
   const handleResetSample = () => {
     loadSampleData();
-    triggerToast("Loaded Demo Room 402 Data!");
+    triggerToast("Loaded Sample Data!");
   };
 
   const handleClear = () => {
@@ -135,7 +136,12 @@ export const Header: React.FC = () => {
 
           {/* Group Dropdown Selector */}
           <div ref={dropdownRef} className="relative min-w-0">
-            {isEditingName ? (
+            {!isHydrated ? (
+              <div className="h-[32px] sm:h-[34px] w-28 sm:w-44 bg-[#FAF8F5] border-2 border-black rounded-lg px-2 shadow-[2px_2px_0_0_#000] flex items-center gap-1.5 animate-pulse">
+                <span className="w-4 h-4 bg-zinc-300 rounded shrink-0" />
+                <span className="h-3 w-16 sm:w-24 bg-zinc-300 rounded" />
+              </div>
+            ) : isEditingName ? (
               <div className="flex items-center gap-1 bg-[#FAF8F5] border-2 border-black rounded-lg px-2 py-0.5 shadow-[2px_2px_0_0_#000] min-w-0">
                 <span className="text-xs sm:text-sm">{activeGroup?.icon || "🛏️"}</span>
                 <input
@@ -378,14 +384,14 @@ export const Header: React.FC = () => {
             </span>
           </button>
 
-          {/* Load Demo Data Button (Compact icon on mobile, text on sm+) */}
+          {/* Load Sample Data Button (Compact icon on mobile, text on sm+) */}
           <button
             onClick={handleResetSample}
-            title="Load realistic Room 402 test data for judges"
+            title="Load realistic sample data"
             className="inline-flex items-center gap-1 text-xs font-black bg-[#2DD4BF] text-black border-2 border-black rounded-lg p-1.5 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all whitespace-nowrap"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Load Demo Data</span>
+            <span className="hidden sm:inline">Load Sample Data</span>
           </button>
 
           {/* Reset / Clear All Button (Compact icon on mobile, text on sm+) */}

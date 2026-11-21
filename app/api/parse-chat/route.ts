@@ -117,11 +117,13 @@ Respond ONLY with valid JSON using this exact schema:
       },
     };
 
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
     const modelsToTry = [
       "gemini-3.0-flash",
-      "gemini-3-flash-preview",
       "gemini-2.5-flash-lite",
       "gemini-2.0-flash",
+      "gemini-3-flash-preview",
     ];
     let response: Response | null = null;
     let result: any = null;
@@ -131,33 +133,62 @@ Respond ONLY with valid JSON using this exact schema:
       const model = modelsToTry[i];
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-      try {
-        const res = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(requestBody),
-          signal: AbortSignal.timeout(45000), // 45s timeout
-        });
+      // For gemini-3.0-flash, allow up to 2 attempts (initial + 1 retry after 1.5s on 503/429)
+      const maxAttempts = model === "gemini-3.0-flash" ? 2 : 1;
 
-        const data = await res.json();
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(45000), // 45s timeout
+          });
 
-        if (
-          res.status === 404 ||
-          data.error?.code === 404 ||
-          data.error?.status === "NOT_FOUND"
-        ) {
-          console.warn(`Model ${model} returned 404, retrying with next model...`);
-          if (i < modelsToTry.length - 1) continue;
+          const data = await res.json();
+          const statusCode = res.status;
+          const errorCode = data.error?.code || statusCode;
+          const isRateLimitOrUnavailable =
+            statusCode === 429 ||
+            statusCode === 503 ||
+            errorCode === 429 ||
+            errorCode === 503 ||
+            data.error?.status === "RESOURCE_EXHAUSTED" ||
+            data.error?.status === "UNAVAILABLE";
+
+          const isNotFound =
+            statusCode === 404 ||
+            errorCode === 404 ||
+            data.error?.status === "NOT_FOUND";
+
+          if (isRateLimitOrUnavailable && attempt < maxAttempts) {
+            console.warn(`Model ${model} hit ${statusCode || errorCode}, retrying in 1.5s (attempt ${attempt}/${maxAttempts})...`);
+            await delay(1500);
+            continue;
+          }
+
+          if ((isRateLimitOrUnavailable || isNotFound) && i < modelsToTry.length - 1) {
+            console.warn(`Model ${model} failed with ${statusCode || errorCode}, falling back to next model...`);
+            break; // Break attempt loop to advance model
+          }
+
+          response = res;
+          result = data;
+          usedModel = model;
+          break;
+        } catch (err: any) {
+          console.warn(`Attempt ${attempt} with ${model} failed:`, err?.message);
+          if (attempt < maxAttempts) {
+            await delay(1500);
+            continue;
+          }
+          if (i < modelsToTry.length - 1) break;
+          throw err;
         }
+      }
 
-        response = res;
-        result = data;
-        usedModel = model;
-        break;
-      } catch (err: any) {
-        console.warn(`Attempt with ${model} failed:`, err?.message);
-        if (i < modelsToTry.length - 1) continue;
-        throw err;
+      if (response && response.ok && result && !result.error) {
+        break; // Successfully got response
       }
     }
 

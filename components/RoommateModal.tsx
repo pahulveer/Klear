@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLedger } from "@/context/LedgerContext";
 import { X, UserPlus, Trash2, ShieldCheck, Check } from "lucide-react";
 
@@ -15,6 +15,17 @@ export const RoommateModal: React.FC<RoommateModalProps> = ({ isOpen, onClose })
   const [name, setName] = useState("");
   const [upiId, setUpiId] = useState("");
   const [isYou, setIsYou] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLedger } from "@/context/LedgerContext";
 import { formatINR } from "@/lib/utils";
 import {
@@ -52,6 +52,17 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
   const [discoveredMembers, setDiscoveredMembers] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [step, setStep] = useState<"input" | "preview">("input");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -250,8 +261,14 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
               <textarea
                 value={chatText}
                 onChange={(e) => setChatText(e.target.value)}
+                onKeyDown={(e) => {
+                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                    e.preventDefault();
+                    handleExtract();
+                  }
+                }}
                 rows={7}
-                placeholder={`Paste WhatsApp messages or exported .txt here...\n\nExample:\n[20/11, 21:00] Veer: Zomato biryani Rs 1260 paid, Tanya ne nahi khaya baaki 3 log split karlo.\n[21/11, 10:30] Rohan: Electricity bill 1800 paid equal.`}
+                placeholder={`Paste WhatsApp messages or exported .txt here...\n\nExample:\n[20/11, 21:00] Veer: Zomato biryani Rs 1260 paid, Tanya ne nahi khaya baaki 3 log split karlo.\n[21/11, 10:30] Rohan: Electricity bill 1800 paid equal.\n\nTip: Press Ctrl+Enter to extract!`}
                 className="w-full bg-[#FAF8F5] border-2 border-black rounded-2xl p-3 text-xs md:text-sm font-mono text-black focus:outline-none focus:ring-2 focus:ring-[#25D366] shadow-[2px_2px_0_0_#000] placeholder:text-zinc-400 resize-y"
               />
 

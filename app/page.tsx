@@ -24,6 +24,7 @@ import {
   UserPlus,
   ShieldCheck,
   MessageSquare,
+  ReceiptIndianRupee,
 } from "lucide-react";
 import { formatINR } from "@/lib/utils";
 import { QRModal } from "@/components/QRModal";
@@ -45,6 +46,7 @@ export default function DashboardPage() {
     toggleSettleTransfer,
     loadSampleData,
     whatsappNudge,
+    isHydrated,
   } = useLedger();
 
   const [activeCategory, setActiveCategory] = useState<string>("ALL");
@@ -151,13 +153,61 @@ export default function DashboardPage() {
     }
   };
 
+  // HYDRATION SKELETON PLACEHOLDER (Eliminates layout shift & empty state flash)
+  if (!isHydrated) {
+    return (
+      <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6 animate-pulse">
+        {/* Top Header Row Skeleton */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <div className="h-8 w-48 bg-zinc-200 border-2 border-black rounded-lg" />
+            <div className="h-4 w-64 bg-zinc-200 border-2 border-black rounded-lg" />
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-36 bg-zinc-200 border-2 border-black rounded-xl shadow-[3px_3px_0_0_#000]" />
+            <div className="h-10 w-32 bg-zinc-200 border-2 border-black rounded-xl shadow-[3px_3px_0_0_#000]" />
+          </div>
+        </div>
+
+        {/* 3 Metric Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="h-32 bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
+            <div className="h-3 w-28 bg-zinc-200 rounded" />
+            <div className="h-8 w-36 bg-zinc-300 rounded" />
+          </div>
+          <div className="h-32 bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
+            <div className="h-3 w-28 bg-zinc-200 rounded" />
+            <div className="h-8 w-36 bg-zinc-300 rounded" />
+          </div>
+          <div className="h-32 bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
+            <div className="h-3 w-28 bg-zinc-200 rounded" />
+            <div className="h-8 w-36 bg-zinc-300 rounded" />
+          </div>
+        </div>
+
+        {/* Main Content Area Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 h-96 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0_0_#000] p-6 space-y-4">
+            <div className="h-6 w-40 bg-zinc-200 rounded" />
+            <div className="h-20 bg-[#FAF8F5] border border-black rounded-xl" />
+            <div className="h-20 bg-[#FAF8F5] border border-black rounded-xl" />
+          </div>
+          <div className="lg:col-span-4 h-96 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0_0_#000] p-6 space-y-4">
+            <div className="h-6 w-32 bg-zinc-200 rounded" />
+            <div className="h-24 bg-[#FAF8F5] border border-black rounded-xl" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // EMPTY STATE (When no roommates are added yet)
   if (members.length === 0) {
     return (
       <div className="p-4 md:p-12 max-w-4xl mx-auto space-y-8">
         <div className="bg-white border-2 border-black rounded-3xl p-8 md:p-12 shadow-[6px_6px_0_0_#000] text-center space-y-6">
-          <div className="w-20 h-20 mx-auto bg-[#FF7A00] border-2 border-black rounded-2xl flex items-center justify-center text-3xl shadow-[3px_3px_0_0_#000]">
-            🛏️
+          <div className="w-14 h-14 mx-auto bg-[#FF6B00] border-2 border-black rounded-2xl flex items-center justify-center shadow-[3px_3px_0_0_#000]">
+            <ReceiptIndianRupee className="w-7 h-7 text-black stroke-[2.5]" />
           </div>
 
           <div className="space-y-3">
@@ -165,11 +215,11 @@ export default function DashboardPage() {
               Welcome to Klear
             </h1>
             <p className="text-sm md:text-base font-bold text-zinc-600 max-w-lg mx-auto">
-              Your ledger is currently empty. Start fresh by adding your roommates, or load realistic Room 402 sample data to test debt simplification immediately.
+              Your ledger is currently empty. Start fresh by adding your roommates, or load sample data to test debt simplification immediately.
             </p>
           </div>
 
-          {/* Two Prominent Action Buttons */}
+          {/* Three Prominent Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <button
               onClick={() => setIsRoommateModalOpen(true)}
@@ -192,7 +242,7 @@ export default function DashboardPage() {
               className="brutal-btn w-full sm:w-auto flex items-center justify-center gap-2 bg-[#2DD4BF] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:bg-teal-300 transition-all"
             >
               <RotateCw className="w-5 h-5" />
-              <span>Load Sample Room 402 Data</span>
+              <span>Load Sample Data</span>
             </button>
           </div>
         </div>

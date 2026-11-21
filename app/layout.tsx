@@ -12,9 +12,21 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Klear — Hostel Expense Splitter & Trip Planner",
+  title: "Klear — Playful Hostel Expense Splitter & Trip Planner",
   description:
-    "Playful Neo-Brutalist bill splitting, debt minimization, and trip planning web app for college hostel roommates.",
+    "Fast, playful Neo-Brutalist hostel expense splitter, bill scanner, debt minimizer, and group trip planner with zero fluff.",
+  openGraph: {
+    title: "Klear — Smart Hostel Expense Splitter & Trip Planner",
+    description:
+      "Playful Neo-Brutalist bill splitting, debt minimization, and trip planning web app for college roommates and friend groups.",
+    url: "https://klear.app",
+    siteName: "Klear",
+    locale: "en_IN",
+    type: "website",
+  },
+  icons: {
+    icon: "/icon.svg",
+  },
 };
 
 export default function RootLayout({
@@ -30,7 +42,9 @@ export default function RootLayout({
           <div className="flex flex-1 w-full max-w-full min-w-0 overflow-x-hidden">
             <Sidebar />
             <main className="flex-1 w-full min-w-0 max-w-full px-3 sm:px-6 pt-4 pb-28 md:pb-8 overflow-x-hidden">
-              {children}
+              <div className="max-w-6xl mx-auto w-full min-w-0">
+                {children}
+              </div>
             </main>
           </div>
           <MobileNav />
