@@ -17,6 +17,7 @@ out/
 # OS / logs
 .DS_Store
 *.log
+*.tsbuildinfo
 
 # Agent & workspace cache
 .agent
