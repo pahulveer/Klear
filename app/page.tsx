@@ -25,6 +25,8 @@ import {
   ShieldCheck,
   MessageSquare,
   ReceiptIndianRupee,
+  Building2,
+  Network,
 } from "lucide-react";
 import { formatINR } from "@/lib/utils";
 import { QRModal } from "@/components/QRModal";
@@ -51,6 +53,8 @@ export default function DashboardPage() {
     whatsappNudge,
     isHydrated,
   } = useLedger();
+
+  const mounted = isHydrated;
 
   const [activeCategory, setActiveCategory] = useState<string>("ALL");
   const [copiedNudge, setCopiedNudge] = useState(false);
@@ -264,8 +268,8 @@ export default function DashboardPage() {
             {/* Top row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000]">
-                  <span className="text-lg">🛏️</span>
+                <div className="p-1.5 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-black" strokeWidth={2.5} />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -327,7 +331,11 @@ export default function DashboardPage() {
                   <ArrowUpRight className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div className="text-2xl font-black font-mono text-emerald-600 mt-0.5">
-                  <AnimatedCurrency value={youOwed} showSign prefix="₹" />
+                  {!mounted ? (
+                    <span className="inline-block w-24 h-7 bg-zinc-200 rounded animate-pulse" />
+                  ) : (
+                    <AnimatedCurrency value={youOwed} showSign prefix="₹" />
+                  )}
                 </div>
                 <div className="text-[11px] font-bold text-zinc-600 mt-1 truncate">
                   {debtorsOwingYou.length > 0
@@ -343,7 +351,9 @@ export default function DashboardPage() {
                   <ArrowDownRight className="w-4 h-4 text-rose-600" />
                 </div>
                 <div className="text-2xl font-black font-mono text-rose-600 mt-0.5">
-                  {youOwe > 0 ? (
+                  {!mounted ? (
+                    <span className="inline-block w-24 h-7 bg-zinc-200 rounded animate-pulse" />
+                  ) : youOwe > 0 ? (
                     <AnimatedCurrency value={youOwe} prefix="-₹" />
                   ) : (
                     <span>₹0</span>
@@ -678,7 +688,8 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-black text-base text-black flex items-center gap-1.5">
-                  <span>🕸️</span> Room Debt Matrix
+                  <Network className="w-4 h-4 text-black" strokeWidth={2.5} />
+                  <span>Room Debt Matrix</span>
                 </h3>
                 <div className="text-[11px] font-bold text-zinc-500">
                   Live simplified peer-to-peer balance graph
@@ -824,7 +835,7 @@ export default function DashboardPage() {
             <div className="p-4 bg-[#FAF8F5] border-2 border-black rounded-xl space-y-3">
               <div className="flex items-center justify-between text-[11px] font-black uppercase text-black">
                 <span>1-CLICK HOSTEL NUDGE</span>
-                <span>💬</span>
+                <MessageSquare className="w-4 h-4 text-black" strokeWidth={2.5} />
               </div>
 
               {pendingTransfers.length === 0 ? (
