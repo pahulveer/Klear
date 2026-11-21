@@ -435,12 +435,12 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
                 {isLoading ? (
                   <>
                     <RotateCw className="w-4 h-4 animate-spin" />
-                    <span>Extracting Expenses with AI...</span>
+                    <span>Extracting Expenses...</span>
                   </>
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4" />
-                    <span>Extract Expenses with AI →</span>
+                    <span>Extract Expenses →</span>
                   </>
                 )}
               </button>

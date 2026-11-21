@@ -40,6 +40,7 @@ import {
 import { formatINR } from "@/lib/utils";
 import { getRecommendedPayer } from "@/lib/settleDebts";
 import { TripPlanItem, CostType, TripPlan, TripStatus } from "@/types/ledger";
+import { AnimatedCurrency } from "@/components/AnimatedCurrency";
 import confetti from "canvas-confetti";
 
 export default function TripPlannerPage() {
@@ -457,7 +458,7 @@ export default function TripPlannerPage() {
             <button
               type="button"
               onClick={() => setTripPlan((prev) => (prev ? { ...prev, flakedMemberIds: [] } : prev))}
-              className="flex items-center gap-1.5 font-black text-xs px-3 py-2 rounded-xl border-2 border-black bg-[#FEF08A] hover:bg-[#fde047] text-black shadow-[2px_2px_0_0_#000] transition-all"
+              className="brutal-btn micro-rattle flex items-center gap-1.5 font-black text-xs px-3 py-2 rounded-xl border-2 border-black bg-[#FEF08A] hover:bg-[#fde047] text-black shadow-[2px_2px_0_0_#000] transition-all"
               title="Reset all flakers to going"
             >
               <span>⚡</span>
@@ -471,7 +472,7 @@ export default function TripPlannerPage() {
           <button
             type="button"
             onClick={handleCreateNewTrip}
-            className="flex items-center gap-1.5 bg-white hover:bg-zinc-100 text-black font-black text-xs px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] transition-all"
+            className="brutal-btn flex items-center gap-1.5 bg-white hover:bg-zinc-100 text-black font-black text-xs px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] transition-all"
           >
             <Plus className="w-3.5 h-3.5 stroke-[3]" />
             <span>Plan Another Trip</span>
@@ -831,7 +832,7 @@ export default function TripPlannerPage() {
                           key={m.id}
                           type="button"
                           onClick={() => toggleFlakedMember(m.id)}
-                          className={`p-2 rounded-xl border-2 border-black flex items-center justify-between text-left transition-all ${
+                          className={`brutal-btn p-2 rounded-xl border-2 border-black flex items-center justify-between text-left transition-all ${
                             isFlaked
                               ? "bg-rose-50 border-rose-400 text-zinc-400 shadow-none opacity-85"
                               : "bg-white text-black shadow-[2px_2px_0_0_#000] hover:-translate-y-0.5"
@@ -869,7 +870,7 @@ export default function TripPlannerPage() {
 
                 {/* Inline Flake Impact Banner */}
                 {flakedMembers.length > 0 && (
-                  <div className="p-3 bg-[#FEF08A] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000] flex items-start gap-2 animate-in fade-in duration-150">
+                  <div className="micro-rattle p-3 bg-[#FEF08A] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000] flex items-start gap-2">
                     <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <div className="text-xs font-black text-black leading-snug flex-1">
                       <span>
@@ -883,7 +884,7 @@ export default function TripPlannerPage() {
                     <button
                       type="button"
                       onClick={() => setTripPlan((prev) => (prev ? { ...prev, flakedMemberIds: [] } : prev))}
-                      className="text-[10px] font-black px-2 py-0.5 bg-black text-[#FEF08A] rounded border border-black hover:bg-zinc-800 shrink-0"
+                      className="brutal-btn text-[10px] font-black px-2 py-0.5 bg-black text-[#FEF08A] rounded border border-black hover:bg-zinc-800 shrink-0"
                     >
                       Reset
                     </button>
@@ -946,7 +947,7 @@ export default function TripPlannerPage() {
                   TOTAL PLANNED
                 </div>
                 <div className="text-lg font-black font-mono text-black">
-                  {formatINR(totalPlannedCost)}
+                  <AnimatedCurrency value={totalPlannedCost} />
                 </div>
               </div>
 
@@ -955,7 +956,7 @@ export default function TripPlannerPage() {
                   LOGGED IN LEDGER
                 </div>
                 <div className="text-lg font-black font-mono text-emerald-600">
-                  {formatINR(totalActualSpent)}
+                  <AnimatedCurrency value={totalActualSpent} />
                 </div>
               </div>
 
@@ -964,7 +965,7 @@ export default function TripPlannerPage() {
                   REMAINING BUFFER
                 </div>
                 <div className="text-lg font-black font-mono text-[#FF7A00]">
-                  {formatINR(Math.max(0, totalPlannedCost - totalActualSpent))}
+                  <AnimatedCurrency value={Math.max(0, totalPlannedCost - totalActualSpent)} />
                 </div>
               </div>
             </div>
@@ -1004,7 +1005,7 @@ export default function TripPlannerPage() {
                   <span>Per-Person Trip Cost</span>
                 </div>
                 {flakedMembers.length > 0 ? (
-                  <span className="text-[10px] font-black bg-rose-200 text-rose-950 border border-black px-1.5 py-0.5 rounded">
+                  <span className="micro-rattle text-[10px] font-black bg-rose-200 text-rose-950 border border-black px-1.5 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
                     +{formatINR(simulation.perPersonDelta)} SURGE
                   </span>
                 ) : (
@@ -1021,7 +1022,7 @@ export default function TripPlannerPage() {
                     {flakedMembers.length > 0 ? "Cost for each going member" : "Base cost per roommate"}
                   </div>
                   <div className="text-2xl font-black font-mono text-black">
-                    {formatINR(flakedMembers.length > 0 ? simulation.simulatedPerPerson : simulation.basePerPerson)}
+                    <AnimatedCurrency value={flakedMembers.length > 0 ? simulation.simulatedPerPerson : simulation.basePerPerson} />
                   </div>
                 </div>
                 <div className="text-right text-[11px] font-bold text-zinc-600">
@@ -1042,7 +1043,7 @@ export default function TripPlannerPage() {
                     <span>Fixed Pool</span>
                   </div>
                   <div className="text-sm font-black font-mono text-black mt-0.5">
-                    {formatINR(simulation.fixedTotal)}
+                    <AnimatedCurrency value={simulation.fixedTotal} />
                   </div>
                   <div className="text-[9px] font-bold text-zinc-500 mt-0.5">
                     {formatINR(Math.round(simulation.fixedTotal / simulation.goingCount))}/ea ({simulation.goingCount} split)
@@ -1055,7 +1056,7 @@ export default function TripPlannerPage() {
                     <span>Variable Pool</span>
                   </div>
                   <div className="text-sm font-black font-mono text-black mt-0.5">
-                    {formatINR(simulation.simulatedVariablePool)}
+                    <AnimatedCurrency value={simulation.simulatedVariablePool} />
                   </div>
                   <div className="text-[9px] font-bold text-zinc-500 mt-0.5">
                     Scales w/ flakers
@@ -1095,7 +1096,7 @@ export default function TripPlannerPage() {
             <button
               type="button"
               onClick={handleMarkAllPaid}
-              className="flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-3 py-1.5 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+              className="brutal-btn flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-3 py-1.5 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-300 transition-all"
             >
               <CheckCheck className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Mark All Paid</span>
@@ -1214,10 +1215,10 @@ export default function TripPlannerPage() {
                       <button
                         type="button"
                         onClick={() => handleTogglePaid(m.id)}
-                        className={`px-2.5 py-1 text-xs font-black rounded-lg border-2 border-black transition-all ${
+                        className={`brutal-btn px-2.5 py-1 text-xs font-black rounded-lg border-2 border-black transition-all ${
                           isPaid
                             ? "bg-white hover:bg-zinc-100 text-zinc-700 shadow-[1px_1px_0_0_#000]"
-                            : "bg-black hover:bg-zinc-800 text-[#2DD4BF] shadow-[2px_2px_0_0_#000] active:translate-y-0.5"
+                            : "bg-black hover:bg-zinc-800 text-[#2DD4BF] shadow-[2px_2px_0_0_#000]"
                         }`}
                       >
                         {isPaid ? "Unmark ↩" : "Mark Paid ✓"}
@@ -1281,10 +1282,12 @@ export default function TripPlannerPage() {
                 ? members.find((m) => m.id === convertedExpense.paidById)
                 : null;
 
+              const staggerClass = idx < 6 ? `receipt-stagger-${idx + 1}` : "";
+
               return (
                 <div
                   key={item.id}
-                  className={`p-4 rounded-xl border-2 border-black transition-all ${
+                  className={`brutal-card-interactive p-4 rounded-xl border-2 border-black transition-all ${staggerClass} ${
                     isConverted
                       ? "bg-[#FAF8F5] border-black opacity-90 shadow-[2px_2px_0_0_#000]"
                       : "bg-white border-black shadow-[3px_3px_0_0_#000]"

@@ -29,6 +29,7 @@ import { formatINR } from "@/lib/utils";
 import { QRModal } from "@/components/QRModal";
 import { RoommateModal } from "@/components/RoommateModal";
 import { WhatsAppImportModal } from "@/components/WhatsAppImportModal";
+import { AnimatedCurrency } from "@/components/AnimatedCurrency";
 
 export default function DashboardPage() {
   const {
@@ -172,7 +173,7 @@ export default function DashboardPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <button
               onClick={() => setIsRoommateModalOpen(true)}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#FF7A00] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] transition-all"
+              className="brutal-btn w-full sm:w-auto flex items-center justify-center gap-2 bg-[#FF7A00] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:bg-orange-500 transition-all"
             >
               <UserPlus className="w-5 h-5 stroke-[2.5]" />
               <span>+ Add Your First Roommate</span>
@@ -180,7 +181,7 @@ export default function DashboardPage() {
 
             <button
               onClick={() => setIsWhatsAppModalOpen(true)}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#25D366] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] transition-all"
+              className="brutal-btn w-full sm:w-auto flex items-center justify-center gap-2 bg-[#25D366] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:bg-emerald-400 transition-all"
             >
               <MessageSquare className="w-5 h-5 stroke-[2.5]" />
               <span>Import from WhatsApp</span>
@@ -188,7 +189,7 @@ export default function DashboardPage() {
 
             <button
               onClick={loadSampleData}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#2DD4BF] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_0_#000] transition-all"
+              className="brutal-btn w-full sm:w-auto flex items-center justify-center gap-2 bg-[#2DD4BF] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:bg-teal-300 transition-all"
             >
               <RotateCw className="w-5 h-5" />
               <span>Load Sample Room 402 Data</span>
@@ -225,7 +226,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3 flex-wrap">
           <button
             onClick={() => setIsWhatsAppModalOpen(true)}
-            className="flex items-center gap-2 bg-[#25D366] text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#000] active:translate-y-0.5 transition-all whitespace-nowrap"
+            className="brutal-btn flex items-center gap-2 bg-[#25D366] text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-emerald-400 transition-all whitespace-nowrap"
           >
             <MessageSquare className="w-4 h-4 stroke-[2.5]" />
             <span>Import from WhatsApp</span>
@@ -233,7 +234,7 @@ export default function DashboardPage() {
 
           <Link
             href="/add"
-            className="flex items-center gap-2 bg-[#FF7A00] text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#000] transition-all whitespace-nowrap"
+            className="brutal-btn flex items-center gap-2 bg-[#FF7A00] text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-orange-500 transition-all whitespace-nowrap"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>+ Add Expense</span>
@@ -241,7 +242,7 @@ export default function DashboardPage() {
 
           <Link
             href="/add"
-            className="flex items-center gap-2 bg-white text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-zinc-50 hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#000] transition-all whitespace-nowrap"
+            className="brutal-btn flex items-center gap-2 bg-white text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-zinc-50 transition-all whitespace-nowrap"
           >
             <Camera className="w-4 h-4" />
             <span>Scan OCR Bill</span>
@@ -279,7 +280,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => setIsRoommateModalOpen(true)}
                 title="Manage group roommates"
-                className="w-8 h-8 rounded-full bg-white border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center hover:bg-amber-100 transition-colors"
+                className="brutal-btn w-8 h-8 rounded-full bg-white border-2 border-black shadow-[2px_2px_0_0_#000] flex items-center justify-center hover:bg-amber-100 transition-colors"
               >
                 <Users className="w-3.5 h-3.5 text-black" />
               </button>
@@ -292,7 +293,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-baseline gap-3 mt-1">
                 <span className="text-4xl md:text-5xl font-black font-mono tracking-tight">
-                  {formatINR(totalPoolSpent)}
+                  <AnimatedCurrency value={totalPoolSpent} />
                 </span>
                 <span className="text-xs font-black bg-white border-2 border-black px-2 py-0.5 rounded-full shadow-[1.5px_1.5px_0_0_#000]">
                   {expenses.length} {expenses.length === 1 ? "Expense" : "Expenses"}
@@ -309,7 +310,7 @@ export default function DashboardPage() {
                   <ArrowUpRight className="w-4 h-4 text-emerald-600" />
                 </div>
                 <div className="text-2xl font-black font-mono text-emerald-600 mt-0.5">
-                  +{formatINR(youOwed)}
+                  <AnimatedCurrency value={youOwed} showSign prefix="₹" />
                 </div>
                 <div className="text-[11px] font-bold text-zinc-600 mt-1 truncate">
                   {debtorsOwingYou.length > 0
@@ -325,7 +326,11 @@ export default function DashboardPage() {
                   <ArrowDownRight className="w-4 h-4 text-rose-600" />
                 </div>
                 <div className="text-2xl font-black font-mono text-rose-600 mt-0.5">
-                  -{formatINR(youOwe)}
+                  {youOwe > 0 ? (
+                    <AnimatedCurrency value={youOwe} prefix="-₹" />
+                  ) : (
+                    <span>₹0</span>
+                  )}
                 </div>
                 <div className="text-[11px] font-bold text-zinc-600 mt-1 truncate">
                   {creditorsYouOwe.length > 0
@@ -509,7 +514,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ) : (
-                filteredExpenses.map((expense) => {
+                filteredExpenses.map((expense, idx) => {
                   const payer =
                     members.find((m) => m.id === expense.paidById) || members[0];
                   const userShare = youMember
@@ -555,10 +560,12 @@ export default function DashboardPage() {
                     );
                   }
 
+                  const staggerClass = `receipt-stagger-${Math.min(idx + 1, 6)}`;
+
                   return (
                     <div
                       key={expense.id}
-                      className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex items-center justify-between gap-3 hover:translate-x-0.5 transition-transform"
+                      className={`bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex items-center justify-between gap-3 hover:translate-x-0.5 transition-transform ${staggerClass}`}
                     >
                       {/* Left: Icon + Title + Payer Subtext */}
                       <div className="flex items-center gap-3 min-w-0">

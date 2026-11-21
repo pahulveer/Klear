@@ -26,6 +26,7 @@ import { formatINR } from "@/lib/utils";
 import { SplitMode, BillItem } from "@/types/ledger";
 import { RoommateModal } from "@/components/RoommateModal";
 import { WhatsAppImportModal } from "@/components/WhatsAppImportModal";
+import { AnimatedCurrency } from "@/components/AnimatedCurrency";
 
 export default function AddExpensePage() {
   const router = useRouter();
@@ -523,10 +524,13 @@ export default function AddExpensePage() {
               onClick={() => {
                 if (!isScanning) fileInputRef.current?.click();
               }}
-              className={`border-2 border-dashed border-black bg-white rounded-xl p-5 text-center transition-all shadow-[2px_2px_0_0_#000] space-y-2 ${
-                isScanning ? "opacity-75 cursor-wait" : "cursor-pointer hover:bg-amber-50/50"
+              className={`relative overflow-hidden border-2 border-dashed border-black bg-white rounded-xl p-5 text-center transition-all shadow-[2px_2px_0_0_#000] space-y-2 brutal-card-interactive ${
+                isScanning ? "opacity-90 cursor-wait" : "cursor-pointer hover:bg-amber-50/50"
               }`}
             >
+              {/* Receipt Scanner Laser Sweep Animation */}
+              {isScanning && <div className="laser-scanline" />}
+
               <div className="w-10 h-10 mx-auto bg-[#FFEDD5] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000] flex items-center justify-center">
                 {isScanning ? (
                   <Loader2 className="w-5 h-5 text-black animate-spin" />
@@ -550,7 +554,7 @@ export default function AddExpensePage() {
               {!isScanning && (
                 <button
                   type="button"
-                  className="mt-2 inline-flex items-center gap-1.5 bg-[#FAF8F5] text-black text-xs font-black px-3 py-1.5 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-100"
+                  className="brutal-btn mt-2 inline-flex items-center gap-1.5 bg-[#FAF8F5] text-black text-xs font-black px-3 py-1.5 rounded-lg border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-100"
                 >
                   <Camera className="w-3.5 h-3.5" />
                   <span>Take Photo / Scan Camera</span>
@@ -702,7 +706,7 @@ export default function AddExpensePage() {
                       key={mode.id}
                       type="button"
                       onClick={() => setSplitMode(mode.id as SplitMode)}
-                      className={`flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border-2 font-black text-xs transition-all whitespace-nowrap ${
+                      className={`brutal-btn flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl border-2 font-black text-xs transition-all whitespace-nowrap ${
                         isSelected
                           ? "bg-[#FF7A00] text-black border-black shadow-[3px_3px_0_0_#000] translate-x-0.5"
                           : "bg-white text-zinc-700 border-black hover:bg-zinc-50 shadow-[1px_1px_0_0_#000]"
@@ -721,7 +725,7 @@ export default function AddExpensePage() {
           <div className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <div className="text-xl font-black font-mono text-black">
-                {formatINR(totalAmount)}.00
+                <AnimatedCurrency value={totalAmount} decimals={2} />
               </div>
               <div className="text-xs font-bold text-zinc-500">
                 {members.length} {members.length === 1 ? "roommate" : "roommates"} in {roomName}
@@ -732,14 +736,14 @@ export default function AddExpensePage() {
               <button
                 type="button"
                 onClick={() => alert("Draft saved.")}
-                className="px-3 py-2 text-xs font-black bg-zinc-100 hover:bg-zinc-200 border-2 border-black rounded-xl transition-colors"
+                className="brutal-btn px-3 py-2 text-xs font-black bg-zinc-100 hover:bg-zinc-200 border-2 border-black rounded-xl transition-colors shadow-[2px_2px_0_0_#000]"
               >
                 Save as Draft
               </button>
               <button
                 type="button"
                 onClick={handleSaveAndSplit}
-                className="flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs md:text-sm px-4 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all whitespace-nowrap"
+                className="brutal-btn flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs md:text-sm px-4 py-2 rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-teal-300 transition-all whitespace-nowrap"
               >
                 <span>Save & Split {formatINR(totalAmount)} →</span>
               </button>
@@ -767,14 +771,15 @@ export default function AddExpensePage() {
                   </button>
                 </div>
               ) : (
-                items.map((item) => {
+                items.map((item, idx) => {
                   const count = item.splitWith.length;
                   const perPerson = count > 0 ? item.amount / count : 0;
+                  const staggerClass = `receipt-stagger-${Math.min(idx + 1, 6)}`;
 
                   return (
                     <div
                       key={item.id}
-                      className="bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] space-y-3"
+                      className={`bg-white border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] space-y-3 ${staggerClass}`}
                     >
                       {/* Item Header: Name, Tag, Subtotal */}
                       <div className="flex items-start justify-between gap-2">
@@ -846,10 +851,10 @@ export default function AddExpensePage() {
                                 key={m.id}
                                 type="button"
                                 onClick={() => toggleItemMember(item.id, m.id)}
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border-2 text-xs font-black transition-all ${
+                                className={`brutal-btn flex items-center gap-1.5 px-2.5 py-1 rounded-full border-2 text-xs font-black transition-all ${
                                   isIncluded
                                     ? `${m.avatarBg} text-black border-black shadow-[2px_2px_0_0_#000]`
-                                    : "bg-white text-zinc-400 border-dashed border-zinc-400 hover:border-black hover:text-black"
+                                    : "bg-white text-zinc-400 border-dashed border-zinc-400 hover:border-black hover:text-black shadow-none"
                                 }`}
                               >
                                 <span className="w-4 h-4 rounded-full bg-white/70 border border-black text-[9px] flex items-center justify-center font-bold">

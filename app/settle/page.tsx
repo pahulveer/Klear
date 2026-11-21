@@ -25,6 +25,7 @@ import { formatINR } from "@/lib/utils";
 import { buildUpiLink } from "@/lib/settleDebts";
 import { QRModal } from "@/components/QRModal";
 import { RoommateModal } from "@/components/RoommateModal";
+import { AnimatedCurrency } from "@/components/AnimatedCurrency";
 import confetti from "canvas-confetti";
 
 export default function SettlePage() {
@@ -732,10 +733,19 @@ export default function SettlePage() {
                   return (
                     <div
                       key={t.id}
-                      className={`border-2 border-black rounded-2xl p-5 shadow-[3px_3px_0_0_#000] space-y-4 transition-all ${
-                        isSettled ? "bg-zinc-100 opacity-60" : "bg-white"
+                      className={`relative overflow-hidden border-2 border-black rounded-2xl p-5 shadow-[3px_3px_0_0_#000] space-y-4 transition-all ${
+                        isSettled ? "bg-zinc-100/90" : "bg-white"
                       }`}
                     >
+                      {/* Rubber "SETTLED" Stamp Slam */}
+                      {isSettled && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
+                          <div className="stamp-slam px-4 py-2 border-4 border-emerald-700 text-emerald-800 bg-white/95 font-black text-base sm:text-lg uppercase tracking-widest rounded-xl shadow-[4px_4px_0_0_#065f46]">
+                            ✓ SETTLED &amp; PAID
+                          </div>
+                        </div>
+                      )}
+
                       {/* Card Header Badge */}
                       <div className="flex items-center justify-between text-xs font-black">
                         <div className="flex items-center gap-2">
@@ -793,7 +803,7 @@ export default function SettlePage() {
                         {/* Middle Amount & Arrow */}
                         <div className="text-center shrink-0 px-2">
                           <div className="text-2xl font-black font-mono text-black">
-                            {formatINR(t.amount)}
+                            <AnimatedCurrency value={t.amount} />
                           </div>
                           <div className="flex items-center justify-center gap-1 text-[10px] font-black uppercase text-zinc-500">
                             <span>—</span>
@@ -856,7 +866,7 @@ export default function SettlePage() {
                             <>
                               <a
                                 href={upiLink}
-                                className="inline-flex items-center gap-1.5 bg-[#FF7A00] text-black font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                                className="brutal-btn inline-flex items-center gap-1.5 bg-[#FF7A00] text-black font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-orange-500 transition-all"
                               >
                                 <span>Request via UPI</span>
                               </a>
@@ -870,7 +880,7 @@ export default function SettlePage() {
                                   );
                                   alert("Payment request message copied to clipboard!");
                                 }}
-                                className="p-2 bg-white text-black font-black rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-50"
+                                className="brutal-btn p-2 bg-white text-black font-black rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-50"
                                 title="Copy Payment Request"
                               >
                                 <Share2 className="w-3.5 h-3.5" />
@@ -886,7 +896,7 @@ export default function SettlePage() {
                                     isPaid: isSettled,
                                   })
                                 }
-                                className="p-2 bg-white text-black font-black rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-50"
+                                className="brutal-btn p-2 bg-white text-black font-black rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-50"
                                 title="Show QR Code"
                               >
                                 <QrCode className="w-3.5 h-3.5" />
