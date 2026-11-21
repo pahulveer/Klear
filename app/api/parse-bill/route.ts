@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "OCR processing is currently unavailable on the server." },
+        { error: "Bill scanning is currently unavailable on the server." },
         { status: 500 }
       );
     }

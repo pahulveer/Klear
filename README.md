@@ -6,7 +6,7 @@
 
 ## ⚡ Core Features
 
-### 1. 🧾 Real Gemini OCR Bill Scanner
+### 1. 🧾 Real Gemini Bill Scanner
 - **Fast Client-Side Compression**: Compresses uploaded bills/receipts down to 1200px max width via browser canvas for fast uploads even on spotty hostel Wi-Fi.
 - **Multimodal Gemini 3.0 Flash API**: Scans messy food delivery, grocery, and dining bills to extract itemized line items, taxes, packaging charges, and total amount with structured JSON enforcement.
 - **Auto-Retry Resilience**: Gracefully falls back from `gemini-3.0-flash` to `gemini-3-flash-preview` if a region/version endpoint shifts.

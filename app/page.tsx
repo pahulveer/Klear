@@ -207,7 +207,7 @@ export default function DashboardPage() {
               Welcome to Klear
             </h1>
             <p className="text-sm md:text-base font-bold text-zinc-600 max-w-lg mx-auto leading-relaxed">
-              Zero-awkwardness hostel expense splitting, OCR bill scanning, and minimum-transfer debt optimization for college roommates.
+              Zero-awkwardness hostel expense splitting, bill scanning, and fewest payments to settle up for college roommates.
             </p>
           </div>
 
@@ -263,7 +263,11 @@ export default function DashboardPage() {
             <span className="bg-[#FAF8F5] border-2 border-black text-black text-xs font-black px-2.5 py-0.5 rounded-full shadow-[1.5px_1.5px_0_0_#000]">
               {members.length} {members.length === 1 ? "Roommate" : "Roommates"}
             </span>
-            {pendingTransfers.length === 0 ? (
+            {expenses.length === 0 ? (
+              <span className="bg-zinc-100 text-zinc-700 border border-black text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
+                No expenses yet
+              </span>
+            ) : pendingTransfers.length === 0 ? (
               <span className="bg-[#2DD4BF] text-teal-950 border border-black text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
                 All Even ✓
               </span>
@@ -379,6 +383,8 @@ export default function DashboardPage() {
                         ? "You are owed"
                         : youNetBalance < 0
                         ? "You owe money"
+                        : expenses.length === 0
+                        ? "No expenses yet"
                         : "All even"}
                     </span>
                   </div>
@@ -429,6 +435,8 @@ export default function DashboardPage() {
                     <span className="text-black font-extrabold">
                       {debtorsOwingYou.map((d) => `${d.name} (${formatINR(d.amount)})`).join(", ")}
                     </span>
+                  ) : expenses.length === 0 ? (
+                    "No expenses yet"
                   ) : (
                     "No pending receivables"
                   )}
@@ -462,6 +470,8 @@ export default function DashboardPage() {
                     <span className="text-black font-extrabold">
                       {creditorsYouOwe.map((c) => `To ${c.name} (${formatINR(c.amount)})`).join(", ")}
                     </span>
+                  ) : expenses.length === 0 ? (
+                    "No expenses yet"
                   ) : (
                     "You are all clear of dues!"
                   )}
@@ -488,28 +498,39 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-xs font-bold text-zinc-600 mt-1">
                     Pay {formatINR(immediateOweTransfer.amount)} to{" "}
-                    <span className="text-black font-extrabold">{immediateCreditor.name}</span>{" "}
+                    <span className="text-black font-extrabold">{immediateCreditor?.name || "Roommate"}</span>{" "}
                     via UPI (GPay • PhonePe • Paytm) to clear your share.
                   </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-                <button
-                  onClick={() =>
-                    setActiveQrModal({
-                      isOpen: true,
-                      payeeName: immediateCreditor.name,
-                      upiId: immediateCreditor.upiId || "",
-                      amount: immediateOweTransfer.amount,
-                      transferId: immediateOweTransfer.id,
-                      isPaid: settledTransferIds.includes(immediateOweTransfer.id),
-                    })
-                  }
-                  className="brutal-btn bg-[#2DD4BF] text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-300 transition-all whitespace-nowrap"
-                >
-                  Pay {formatINR(immediateOweTransfer.amount)} via UPI →
-                </button>
+                {immediateCreditor?.upiId?.trim() ? (
+                  <button
+                    onClick={() =>
+                      setActiveQrModal({
+                        isOpen: true,
+                        payeeName: immediateCreditor.name || "Roommate",
+                        upiId: immediateCreditor.upiId || "",
+                        amount: immediateOweTransfer.amount,
+                        transferId: immediateOweTransfer.id,
+                        isPaid: settledTransferIds.includes(immediateOweTransfer.id),
+                      })
+                    }
+                    className="brutal-btn bg-[#2DD4BF] text-black font-black text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-300 transition-all whitespace-nowrap"
+                  >
+                    Pay {formatINR(immediateOweTransfer.amount)} to {(immediateCreditor.name || "Roommate").split(" ")[0]} via UPI →
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex items-center gap-1.5 bg-zinc-100 text-zinc-400 font-bold text-xs md:text-sm px-4 py-2.5 rounded-xl border-2 border-zinc-300 cursor-not-allowed select-none whitespace-nowrap"
+                    title="No UPI ID registered for this roommate"
+                  >
+                    <span>No UPI ID</span>
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -577,20 +598,13 @@ export default function DashboardPage() {
                   {expenses.length - settledTransferIds.length} active bills
                 </div>
               </div>
-              <Link
-                href="/add"
-                className="text-[10px] font-black text-purple-950 hover:underline flex items-center gap-1"
-              >
-                <span>+ Add another bill</span>
-                <span>→</span>
-              </Link>
             </div>
 
             {/* Tile 3: Minimum Settlement Payments */}
             <div className="bg-[#2DD4BF] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-teal-950 uppercase tracking-wider">
-                  MIN PAYMENTS
+                  Payments needed
                 </span>
                 <GitCommit className="w-4 h-4 text-teal-950" />
               </div>
@@ -852,22 +866,22 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right Column: Room Debt Matrix + Who Pays Whom + WhatsApp Nudge */}
+        {/* Right Column: Who owes who + Who pays whom + WhatsApp Nudge */}
         <div className="lg:col-span-4 space-y-6 min-w-0">
-          {/* Card 1: Room Debt Matrix */}
+          {/* Card 1: Who owes who */}
           <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-4">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-black text-base text-black flex items-center gap-1.5">
                   <Network className="w-4 h-4 text-black" strokeWidth={2.5} />
-                  <span>Room Debt Matrix</span>
+                  <span>Who owes who</span>
                 </h3>
                 <div className="text-[11px] font-bold text-zinc-500">
-                  Live simplified peer-to-peer balance graph
+                  Who needs to pay whom, simplified
                 </div>
               </div>
               <span className="bg-[#2DD4BF] text-teal-950 text-[10px] font-black px-2 py-0.5 rounded border border-black shadow-[1px_1px_0_0_#000]">
-                Fewest transfers
+                Fewest payments
               </span>
             </div>
 
@@ -894,11 +908,11 @@ export default function DashboardPage() {
                     <div
                       key={t.id}
                       onClick={() => {
-                        if (!isPaid && creditor) {
+                        if (!isPaid && creditor && creditor.upiId && creditor.upiId.trim()) {
                           setActiveQrModal({
                             isOpen: true,
-                            payeeName: creditor.name,
-                            upiId: creditor.upiId || "",
+                            payeeName: creditor.name || "Roommate",
+                            upiId: creditor.upiId.trim(),
                             amount: t.amount,
                             transferId: t.id,
                             isPaid,
@@ -961,12 +975,12 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* WHO PAYS WHOM Flow */}
+            {/* Who pays whom Flow */}
             <div className="p-3 bg-[#FAF8F5] border-2 border-black rounded-xl space-y-2">
               <div className="flex items-center justify-between text-[10px] font-black uppercase text-zinc-600">
-                <span>WHO PAYS WHOM</span>
+                <span>Who pays whom</span>
                 <span className="text-[#059669]">
-                  {pendingTransfers.length} Step{pendingTransfers.length === 1 ? "" : "s"} Path
+                  {pendingTransfers.length} {pendingTransfers.length === 1 ? "payment needed" : "payments needed"}
                 </span>
               </div>
 
@@ -1001,7 +1015,7 @@ export default function DashboardPage() {
                 </div>
               ) : (
                 <div className="text-[11px] font-bold text-center text-zinc-500 py-1">
-                  Everyone&apos;s even (Ledger fully balanced)
+                  {expenses.length === 0 ? "No expenses yet" : "Everything adds up"}
                 </div>
               )}
             </div>
@@ -1013,7 +1027,16 @@ export default function DashboardPage() {
                 <MessageSquare className="w-4 h-4 text-black" strokeWidth={2.5} />
               </div>
 
-              {pendingTransfers.length === 0 ? (
+              {expenses.length === 0 ? (
+                <div className="bg-zinc-50 border-2 border-zinc-400 rounded-lg p-3 text-center space-y-1">
+                  <div className="text-xs font-black text-zinc-700 flex items-center justify-center gap-1.5">
+                    <span>No expenses yet</span>
+                  </div>
+                  <p className="text-[11px] font-bold text-zinc-500">
+                    Add an expense to calculate settlements and send reminders.
+                  </p>
+                </div>
+              ) : pendingTransfers.length === 0 ? (
                 <div className="bg-emerald-50 border-2 border-emerald-600 rounded-lg p-3 text-center space-y-1">
                   <div className="text-xs font-black text-emerald-900 flex items-center justify-center gap-1.5">
                     <CheckCircle className="w-4 h-4 text-emerald-700" />

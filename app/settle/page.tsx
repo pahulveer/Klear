@@ -387,9 +387,9 @@ export default function SettlePage() {
               <FileDown className="w-4 h-4 text-teal-950" />
             </div>
             <div>
-              <div className="text-xs font-black text-black">Export Audit Sheet (CSV)</div>
+              <div className="text-xs font-black text-black">Download CSV</div>
               <div className="text-[10px] font-bold text-zinc-500">
-                Full settlement proof
+                Proof of payment
               </div>
             </div>
           </div>
@@ -610,16 +610,19 @@ export default function SettlePage() {
                             memberTransfers.map((t) => {
                               const isPayer = t.fromId === m.id;
                               const otherMember =
-                                members.find((x) => x.id === (isPayer ? t.toId : t.fromId)) ||
-                                members[0];
+                                members.find((x) => x.id === (isPayer ? t.toId : t.fromId));
+                              const creditor = isPayer ? otherMember : m;
+                              const hasCreditorUpi = Boolean(creditor && creditor.upiId && creditor.upiId.trim());
                               const isPaid = settledTransferIds.includes(t.id);
 
-                              const upiLink = buildUpiLink({
-                                upiId: isPayer ? otherMember.upiId : m.upiId,
-                                payeeName: isPayer ? otherMember.name : m.name,
-                                amount: t.amount,
-                                note: `${roomName} settlement: ${m.name}`,
-                              });
+                              const upiLink = hasCreditorUpi
+                                ? buildUpiLink({
+                                    upiId: creditor!.upiId,
+                                    payeeName: creditor?.name || "Roommate",
+                                    amount: t.amount,
+                                    note: `${roomName} settlement: ${m?.name || "Roommate"}`,
+                                  })
+                                : "";
 
                               return (
                                 <div
@@ -651,8 +654,8 @@ export default function SettlePage() {
                                         }`}
                                       >
                                         {isPayer
-                                          ? `Pay ${otherMember.isYou ? "You" : otherMember.name.split(" ")[0]}`
-                                          : `From ${otherMember.isYou ? "You" : otherMember.name.split(" ")[0]}`}
+                                          ? `Pay ${otherMember?.isYou ? "You" : (otherMember?.name || "Roommate").split(" ")[0]}`
+                                          : `From ${otherMember?.isYou ? "You" : (otherMember?.name || "Roommate").split(" ")[0]}`}
                                       </span>
                                     </div>
 
@@ -670,71 +673,82 @@ export default function SettlePage() {
                                   {/* Action Buttons for this transfer */}
                                   <div className="mt-2 pt-2 border-t border-black/10 flex items-center justify-between gap-2 flex-wrap">
                                     <div className="flex items-center gap-1.5">
-                                      {isPayer ? (
-                                        <a
-                                          href={upiLink}
-                                          className="inline-flex items-center gap-1 bg-[#2DD4BF] hover:bg-teal-300 text-black text-[10px] font-black px-2.5 py-1 rounded-lg border border-black shadow-[1px_1px_0_0_#000] active:translate-y-0.5 transition-all"
-                                        >
-                                          <Zap className="w-3 h-3 fill-amber-500 text-amber-500" />
-                                          <span>Pay UPI</span>
-                                        </a>
+                                      {hasCreditorUpi ? (
+                                        <>
+                                          {isPayer ? (
+                                            <a
+                                              href={upiLink}
+                                              className="inline-flex items-center gap-1 bg-[#2DD4BF] hover:bg-teal-300 text-black text-[10px] font-black px-2.5 py-1 rounded-lg border border-black shadow-[1px_1px_0_0_#000] active:translate-y-0.5 transition-all"
+                                            >
+                                              <Zap className="w-3 h-3 fill-amber-500 text-amber-500" />
+                                              <span>Pay UPI</span>
+                                            </a>
+                                          ) : (
+                                            <a
+                                              href={upiLink}
+                                              className="inline-flex items-center gap-1 bg-[#FF7A00] hover:bg-orange-400 text-black text-[10px] font-black px-2.5 py-1 rounded-lg border border-black shadow-[1px_1px_0_0_#000] active:translate-y-0.5 transition-all"
+                                            >
+                                              <span>Request</span>
+                                            </a>
+                                          )}
+
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              if (creditor?.upiId) {
+                                                handleCopyText(creditor.upiId, `copy-ind-${t.id}`);
+                                              }
+                                            }}
+                                            title="Copy UPI ID"
+                                            aria-label="Copy UPI ID"
+                                            className="inline-flex items-center gap-1 bg-white hover:bg-zinc-100 text-black text-[10px] font-black px-2 py-1 rounded-lg border border-black shadow-[1px_1px_0_0_#000] active:translate-y-0.5 transition-all"
+                                          >
+                                            {copiedUpi === `copy-ind-${t.id}` ? (
+                                              <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
+                                            ) : (
+                                              <Copy className="w-3 h-3" />
+                                            )}
+                                            <span>{copiedUpi === `copy-ind-${t.id}` ? "Copied" : "Copy"}</span>
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() =>
+                                              setSelectedTransferForQr({
+                                                payeeName: creditor?.name || "Roommate",
+                                                upiId: creditor!.upiId,
+                                                amount: t.amount,
+                                                transferId: t.id,
+                                                isPaid,
+                                              })
+                                            }
+                                            className="p-1 bg-white hover:bg-zinc-100 rounded-lg border border-black text-black"
+                                            title="Show QR Code"
+                                            aria-label="Show QR Code"
+                                          >
+                                            <QrCode className="w-3.5 h-3.5" />
+                                          </button>
+                                        </>
                                       ) : (
-                                        <a
-                                          href={upiLink}
-                                          className="inline-flex items-center gap-1 bg-[#FF7A00] hover:bg-orange-400 text-black text-[10px] font-black px-2.5 py-1 rounded-lg border border-black shadow-[1px_1px_0_0_#000] active:translate-y-0.5 transition-all"
-                                        >
-                                          <span>Request</span>
-                                        </a>
+                                        <span className="px-2 py-1 bg-zinc-100 text-zinc-400 font-bold text-[10px] rounded-lg border border-zinc-300 select-none">
+                                          No UPI ID
+                                        </span>
                                       )}
 
                                       <button
                                         type="button"
-                                        onClick={() =>
-                                          handleCopyText(
-                                            isPayer ? otherMember.upiId || "" : m.upiId || "",
-                                            `copy-ind-${t.id}`
-                                          )
-                                        }
-                                        title="Copy UPI ID"
-                                        aria-label="Copy UPI ID"
-                                        className="inline-flex items-center gap-1 bg-white hover:bg-zinc-100 text-black text-[10px] font-black px-2 py-1 rounded-lg border border-black shadow-[1px_1px_0_0_#000] active:translate-y-0.5 transition-all"
-                                      >
-                                        {copiedUpi === `copy-ind-${t.id}` ? (
-                                          <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
-                                        ) : (
-                                          <Copy className="w-3 h-3" />
-                                        )}
-                                        <span>{copiedUpi === `copy-ind-${t.id}` ? "Copied" : "Copy"}</span>
-                                      </button>
-
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          setSelectedTransferForQr({
-                                            payeeName: isPayer ? otherMember.name : m.name,
-                                            upiId: isPayer ? otherMember.upiId : m.upiId,
-                                            amount: t.amount,
-                                            transferId: t.id,
-                                            isPaid,
-                                          })
-                                        }
-                                        className="p-1 bg-white hover:bg-zinc-100 rounded-lg border border-black text-black"
-                                        title="Show QR Code"
-                                        aria-label="Show QR Code"
-                                      >
-                                        <QrCode className="w-3.5 h-3.5" />
-                                      </button>
-
-                                      <button
-                                        type="button"
                                         onClick={() => {
+                                          const otherName = (otherMember?.name || "Roommate").split(" ")[0];
+                                          const otherUpi = otherMember?.upiId || "";
+                                          const mName = (m?.name || "Roommate").split(" ")[0];
+                                          const mUpi = m?.upiId || "";
                                           const msg = isPayer
-                                            ? `Hey ${m.name.split(" ")[0]}, please send ${formatINR(
+                                            ? `Hey ${mName}, please send ${formatINR(
                                                 t.amount
-                                              )} for ${roomName} tab to ${otherMember.upiId}`
-                                            : `Hey ${otherMember.name.split(" ")[0]}, please send ${formatINR(
+                                              )} for ${roomName} tab to ${otherUpi}`
+                                            : `Hey ${otherName}, please send ${formatINR(
                                                 t.amount
-                                              )} for ${roomName} tab to ${m.upiId}`;
+                                              )} for ${roomName} tab to ${mUpi}`;
                                           navigator.clipboard.writeText(msg);
                                           alert("WhatsApp reminder text copied to clipboard!");
                                         }}
@@ -801,18 +815,21 @@ export default function SettlePage() {
                 </div>
               ) : (
                 simplifiedTransfers.map((t, idx) => {
-                  const debtor = members.find((m) => m.id === t.fromId) || members[0];
-                  const creditor = members.find((m) => m.id === t.toId) || members[0];
+                  const debtor = members.find((m) => m.id === t.fromId);
+                  const creditor = members.find((m) => m.id === t.toId);
                   const isSettled = settledTransferIds.includes(t.id);
                   const isYouDebtor = youMember && t.fromId === youMember.id;
                   const isYouCreditor = youMember && t.toId === youMember.id;
+                  const hasCreditorUpi = Boolean(creditor && creditor.upiId && creditor.upiId.trim());
 
-                  const upiLink = buildUpiLink({
-                    upiId: creditor.upiId,
-                    payeeName: creditor.name,
-                    amount: t.amount,
-                    note: `${roomName} tab: ${debtor.name} to ${creditor.name}`,
-                  });
+                  const upiLink = hasCreditorUpi
+                    ? buildUpiLink({
+                        upiId: creditor!.upiId,
+                        payeeName: creditor?.name || "Roommate",
+                        amount: t.amount,
+                        note: `${roomName} tab: ${debtor?.name || "Roommate"} to ${creditor?.name || "Roommate"}`,
+                      })
+                    : "";
 
                   return (
                     <div
@@ -834,10 +851,10 @@ export default function SettlePage() {
                       <div className="flex items-center justify-between text-xs font-black">
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-mono px-2 py-0.5 bg-zinc-100 border border-black rounded">
-                            {isYouDebtor ? "OUTGOING SETTLEMENT" : `TRANSFER 0${idx + 1}`}
+                            {isYouDebtor ? "YOU PAY" : `TRANSFER 0${idx + 1}`}
                           </span>
                           <span className="text-zinc-500 hidden sm:inline">
-                            Direct Settlement: {debtor.name.split(" ")[0]} ➔ {creditor.name.split(" ")[0]}
+                            Direct Settlement: {(debtor?.name || "Roommate").split(" ")[0]} ➔ {(creditor?.name || "Roommate").split(" ")[0]}
                           </span>
                         </div>
 
@@ -863,23 +880,29 @@ export default function SettlePage() {
                         {/* Debtor */}
                         <div className="flex items-center gap-2.5 min-w-0">
                           <div
-                            className={`w-10 h-10 rounded-full border-2 border-black ${debtor.avatarBg} text-black font-black text-sm flex items-center justify-center shrink-0 shadow-[1px_1px_0_0_#000]`}
+                            className={`w-10 h-10 rounded-full border-2 border-black ${debtor?.avatarBg || "bg-zinc-200"} text-black font-black text-sm flex items-center justify-center shrink-0 shadow-[1px_1px_0_0_#000]`}
                           >
-                            {debtor.initials}
+                            {debtor?.initials || (debtor?.name ? debtor.name.slice(0, 2).toUpperCase() : "RM")}
                           </div>
                           <div className="min-w-0">
                             <div className="font-black text-sm text-black truncate">
-                              {debtor.isYou ? "You" : debtor.name}
+                              {debtor?.isYou ? "You" : debtor?.name || "Roommate"}
                             </div>
                             <div className="text-[11px] font-mono text-zinc-500 flex items-center gap-1">
-                              <span className="truncate">{debtor.upiId}</span>
-                              <button
-                                onClick={() => handleCopyText(debtor.upiId || "", debtor.id)}
-                                title="Copy UPI ID"
-                                className="hover:text-black"
-                              >
-                                <Copy className="w-3 h-3" />
-                              </button>
+                              <span className="truncate">{debtor?.upiId || "No UPI ID"}</span>
+                              {debtor?.upiId && (
+                                <button
+                                  onClick={() => {
+                                    if (debtor?.upiId) {
+                                      handleCopyText(debtor.upiId, debtor?.id || "");
+                                    }
+                                  }}
+                                  title="Copy UPI ID"
+                                  className="hover:text-black"
+                                >
+                                  <Copy className="w-3 h-3" />
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -902,17 +925,17 @@ export default function SettlePage() {
                         {/* Creditor */}
                         <div className="flex items-center gap-2.5 min-w-0 flex-row-reverse text-right">
                           <div
-                            className={`w-10 h-10 rounded-full border-2 border-black ${creditor.avatarBg} text-black font-black text-sm flex items-center justify-center shrink-0 shadow-[1px_1px_0_0_#000]`}
+                            className={`w-10 h-10 rounded-full border-2 border-black ${creditor?.avatarBg || "bg-zinc-200"} text-black font-black text-sm flex items-center justify-center shrink-0 shadow-[1px_1px_0_0_#000]`}
                           >
-                            {creditor.initials}
+                            {creditor?.initials || (creditor?.name ? creditor.name.slice(0, 2).toUpperCase() : "RM")}
                           </div>
                           <div className="min-w-0">
                             <div className="font-black text-sm text-black truncate">
-                              {creditor.isYou ? "You" : creditor.name}
+                              {creditor?.isYou ? "You" : creditor?.name || "Roommate"}
                             </div>
                             <div className="text-[11px] font-mono text-zinc-500 flex items-center gap-1 justify-end">
-                              <span className="truncate">{creditor.upiId}</span>
-                              <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                              <span className="truncate">{creditor?.upiId || "No UPI ID"}</span>
+                              {creditor?.upiId && <CheckCircle2 className="w-3 h-3 text-emerald-600" />}
                             </div>
                           </div>
                         </div>
@@ -921,21 +944,25 @@ export default function SettlePage() {
                       {/* Actions & Mark as Paid Row */}
                       <div className="pt-2 border-t border-dashed border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                          {creditor.upiId ? (
+                          {hasCreditorUpi ? (
                             <>
                               <a
                                 href={upiLink}
                                 className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
                                 title="Open in UPI app (mobile only)"
                               >
-                                <span>Pay {formatINR(t.amount)} via UPI →</span>
+                                <span>Pay {formatINR(t.amount)} to {(creditor?.name || "Roommate").split(" ")[0]} via UPI →</span>
                               </a>
 
                               <button
                                 type="button"
-                                onClick={() => handleCopyText(creditor.upiId || "", `transfer-upi-${t.id}`)}
+                                onClick={() => {
+                                  if (creditor?.upiId) {
+                                    handleCopyText(creditor.upiId, `transfer-upi-${t.id}`);
+                                  }
+                                }}
                                 title="Copy UPI ID for desktop payment"
-                                aria-label={`Copy UPI ID for ${creditor.name}`}
+                                aria-label={`Copy UPI ID for ${creditor?.name || "Roommate"}`}
                                 className="inline-flex items-center gap-1.5 bg-white hover:bg-zinc-100 text-black font-black text-xs px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] active:translate-y-0.5 transition-all"
                               >
                                 {copiedUpi === `transfer-upi-${t.id}` ? (
@@ -950,31 +977,33 @@ export default function SettlePage() {
                                   </>
                                 )}
                               </button>
+
+                              <button
+                                onClick={() =>
+                                  setSelectedTransferForQr({
+                                    payeeName: creditor?.name || "Roommate",
+                                    upiId: creditor!.upiId,
+                                    amount: t.amount,
+                                    transferId: t.id,
+                                    isPaid: isSettled,
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 bg-white text-black font-black text-xs px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-50"
+                              >
+                                <QrCode className="w-3.5 h-3.5" />
+                                <span>Show QR</span>
+                              </button>
                             </>
                           ) : (
                             <button
-                              onClick={() => setIsRoommateModalOpen(true)}
-                              className="inline-flex items-center gap-1.5 bg-[#FED7AA] text-orange-950 font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-orange-200 transition-all"
+                              type="button"
+                              disabled
+                              className="inline-flex items-center gap-1.5 bg-zinc-100 text-zinc-400 font-bold text-xs px-3.5 py-2 rounded-xl border-2 border-zinc-300 cursor-not-allowed select-none"
+                              title="No UPI ID registered for this roommate"
                             >
-                              <span>+ Add UPI for {creditor.name.split(" ")[0]}</span>
+                              <span>No UPI ID</span>
                             </button>
                           )}
-
-                          <button
-                            onClick={() =>
-                              setSelectedTransferForQr({
-                                payeeName: creditor.name,
-                                upiId: creditor.upiId || "",
-                                amount: t.amount,
-                                transferId: t.id,
-                                isPaid: isSettled,
-                              })
-                            }
-                            className="inline-flex items-center gap-1 bg-white text-black font-black text-xs px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-zinc-50"
-                          >
-                            <QrCode className="w-3.5 h-3.5" />
-                            <span>Show QR</span>
-                          </button>
                         </div>
 
                         {/* Mark as Paid Toggle Checkbox */}
@@ -1054,7 +1083,7 @@ export default function SettlePage() {
           <div className="bg-white border-2 border-black rounded-3xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-black text-sm text-black flex items-center gap-1.5">
-                <span>💬</span> WhatsApp Banter Nudge
+                <span>💬</span> WhatsApp reminder
               </h3>
               <span className="bg-[#2DD4BF] text-teal-950 text-[10px] font-black px-2 py-0.5 rounded border border-black">
                 1-CLICK
@@ -1101,9 +1130,9 @@ export default function SettlePage() {
           <div className="bg-white border-2 border-black rounded-3xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
             <div className="flex items-center justify-between">
               <h3 className="font-black text-sm text-black flex items-center gap-1.5">
-                <History className="w-4 h-4" /> Settlement Log
+                <History className="w-4 h-4" /> Past payments
               </h3>
-              <span className="text-[10px] font-bold text-zinc-500">Audit Trail</span>
+              <span className="text-[10px] font-bold text-zinc-500">History</span>
             </div>
 
             <div className="space-y-2.5 text-xs font-bold">
@@ -1253,14 +1282,18 @@ export default function SettlePage() {
                   {memberTransfers.map((t) => {
                     const isOutgoing = t.fromId === selectedMemberForDetails.id;
                     const otherId = isOutgoing ? t.toId : t.fromId;
-                    const otherMember = members.find((m) => m.id === otherId) || members[0];
+                    const otherMember = members.find((m) => m.id === otherId);
+                    const creditorMember = isOutgoing ? otherMember : selectedMemberForDetails;
+                    const hasTargetUpi = Boolean(creditorMember && creditorMember.upiId && creditorMember.upiId.trim());
                     const isSettled = settledTransferIds.includes(t.id);
-                    const upiLink = buildUpiLink({
-                      upiId: isOutgoing ? otherMember.upiId : selectedMemberForDetails.upiId,
-                      payeeName: isOutgoing ? otherMember.name : selectedMemberForDetails.name,
-                      amount: t.amount,
-                      note: `${roomName} settlement: ${selectedMemberForDetails.name}`,
-                    });
+                    const upiLink = hasTargetUpi
+                      ? buildUpiLink({
+                          upiId: creditorMember!.upiId,
+                          payeeName: creditorMember?.name || "Roommate",
+                          amount: t.amount,
+                          note: `${roomName} settlement: ${selectedMemberForDetails?.name || "Roommate"}`,
+                        })
+                      : "";
 
                     return (
                       <div
@@ -1279,8 +1312,8 @@ export default function SettlePage() {
                           </span>
                           <span className="text-xs font-black text-black truncate">
                             {isOutgoing
-                              ? `${selectedMemberForDetails.name.split(" ")[0]} ➔ ${otherMember.name.split(" ")[0]}`
-                              : `${otherMember.name.split(" ")[0]} ➔ ${selectedMemberForDetails.name.split(" ")[0]}`}
+                              ? `${(selectedMemberForDetails?.name || "Roommate").split(" ")[0]} ➔ ${(otherMember?.name || "Roommate").split(" ")[0]}`
+                              : `${(otherMember?.name || "Roommate").split(" ")[0]} ➔ ${(selectedMemberForDetails?.name || "Roommate").split(" ")[0]}`}
                           </span>
                           <span className="font-mono font-black text-sm text-black">
                             {formatINR(t.amount)}
@@ -1288,27 +1321,35 @@ export default function SettlePage() {
                         </div>
 
                         <div className="flex items-center gap-2 shrink-0">
-                          <a
-                            href={upiLink}
-                            className="px-2.5 py-1.5 bg-[#FF7A00] text-black font-black text-[11px] rounded-lg border border-black shadow-[1px_1px_0_0_#000]"
-                          >
-                            UPI Pay
-                          </a>
-                          <button
-                            onClick={() =>
-                              setSelectedTransferForQr({
-                                payeeName: isOutgoing ? otherMember.name : selectedMemberForDetails.name,
-                                upiId: isOutgoing ? otherMember.upiId : selectedMemberForDetails.upiId,
-                                amount: t.amount,
-                                transferId: t.id,
-                                isPaid: isSettled,
-                              })
-                            }
-                            className="p-1.5 bg-white text-black font-black rounded-lg border border-black hover:bg-zinc-50"
-                            title="Show QR"
-                          >
-                            <QrCode className="w-3.5 h-3.5" />
-                          </button>
+                          {hasTargetUpi ? (
+                            <>
+                              <a
+                                href={upiLink}
+                                className="px-2.5 py-1.5 bg-[#FF7A00] text-black font-black text-[11px] rounded-lg border border-black shadow-[1px_1px_0_0_#000]"
+                              >
+                                UPI Pay
+                              </a>
+                              <button
+                                onClick={() =>
+                                  setSelectedTransferForQr({
+                                    payeeName: creditorMember?.name || "Roommate",
+                                    upiId: creditorMember!.upiId,
+                                    amount: t.amount,
+                                    transferId: t.id,
+                                    isPaid: isSettled,
+                                  })
+                                }
+                                className="p-1.5 bg-white text-black font-black rounded-lg border border-black hover:bg-zinc-50"
+                                title="Show QR"
+                              >
+                                <QrCode className="w-3.5 h-3.5" />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="px-2 py-1 bg-zinc-100 text-zinc-400 font-bold text-[10px] rounded-lg border border-zinc-300 select-none">
+                              No UPI ID
+                            </span>
+                          )}
                           <label className="flex items-center gap-1.5 text-[11px] font-black text-zinc-700 cursor-pointer select-none">
                             <input
                               type="checkbox"

@@ -5,7 +5,7 @@ import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
 import { MobileNav } from "@/components/MobileNav";
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://klear.app";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://klear-zeta.vercel.app";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -14,11 +14,11 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: "Klear — Playful Hostel Expense Splitter & Trip Planner",
+  title: "Klear: Hostel Expense Splitter & Trip Planner",
   description:
     "Fast, playful Neo-Brutalist hostel expense splitter, bill scanner, debt minimizer, and group trip planner with zero fluff.",
   openGraph: {
-    title: "Klear — Smart Hostel Expense Splitter & Trip Planner",
+    title: "Klear: Hostel Expense Splitter & Trip Planner",
     description:
       "Playful Neo-Brutalist bill splitting, debt minimization, and trip planning web app for college roommates and friend groups.",
     url: siteUrl,
@@ -30,13 +30,13 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Klear — Playful Hostel Expense Splitter & Trip Planner",
+        alt: "Klear: Hostel Expense Splitter & Trip Planner",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Klear — Smart Hostel Expense Splitter & Trip Planner",
+    title: "Klear: Hostel Expense Splitter & Trip Planner",
     description:
       "Playful Neo-Brutalist bill splitting, debt minimization, and trip planning web app for college roommates and friend groups.",
     images: ["/og-image.png"],

@@ -702,12 +702,12 @@ function AddExpenseForm() {
             </div>
           </div>
 
-          {/* Section 2: SMART OCR RECEIPT SCANNER */}
+          {/* Section 2: SMART BILL SCANNER */}
           <div className="bg-[#FFEDD5] border-2 border-black rounded-3xl p-5 shadow-[4px_4px_0_0_#000] space-y-3">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2">
                 <span className="bg-[#FF7A00] text-black border border-black text-[10px] font-black px-2 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
-                  GEMINI 3.0 MULTIMODAL OCR
+                  GEMINI 3.0 MULTIMODAL SCANNER
                 </span>
                 <span className="text-xs font-black text-black">Scan Receipt / Invoice</span>
               </div>
@@ -799,7 +799,7 @@ function AddExpenseForm() {
                   <AlertTriangle className="w-5 h-5 text-rose-700 shrink-0 mt-0.5" />
                   <div>
                     <div className="text-xs font-black uppercase tracking-wide text-rose-900">
-                      OCR Scan Error
+                      Bill Scan Error
                     </div>
                     <div className="text-xs font-bold font-mono mt-1 break-all">
                       {scanErrorMessage}
@@ -1330,7 +1330,7 @@ function AddExpenseForm() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-[10px] font-black uppercase text-black/80">
-                    PAYER&apos;S TRUE SHARE
+                    PAYER&apos;S SHARE
                   </div>
                   <div className="text-[10px] font-bold text-zinc-600">
                     Net personal cost
@@ -1363,7 +1363,7 @@ function AddExpenseForm() {
                 onClick={handleSaveAndSplit}
                 className="brutal-btn w-full flex items-center justify-center gap-2 bg-[#FF7A00] hover:bg-orange-500 text-black font-black text-sm md:text-base py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] active:translate-y-0.5 transition-all"
               >
-                <span>Save &amp; Settle {formatINR(totalAmount)} →</span>
+                <span>Save &amp; Split {formatINR(totalAmount)} →</span>
               </button>
             </div>
           </div>

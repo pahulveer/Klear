@@ -182,7 +182,10 @@ export function buildUpiLink({
   note?: string;
 }): string {
   const cleanUpi = (upiId || "").trim();
-  const cleanName = payeeName.trim();
+  const cleanName = (payeeName || "").trim();
+  if (!cleanUpi || !cleanName) {
+    return "";
+  }
   const formattedAmount = (Math.round(amount * 100) / 100).toFixed(2);
   const encodedPa = encodeURIComponent(cleanUpi);
   const encodedPn = encodeURIComponent(cleanName);

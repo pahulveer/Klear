@@ -42,12 +42,15 @@ export const QRModal: React.FC<QRModalProps> = ({
 
   if (!isOpen) return null;
 
-  const upiUrl = buildUpiLink({
-    upiId,
-    payeeName,
-    amount,
-    note,
-  });
+  const hasValidPayee = Boolean(upiId && upiId.trim() && payeeName && payeeName.trim());
+  const upiUrl = hasValidPayee
+    ? buildUpiLink({
+        upiId,
+        payeeName,
+        amount,
+        note,
+      })
+    : "";
 
   const handleCopyUpi = () => {
     navigator.clipboard.writeText(upiId);
@@ -94,34 +97,44 @@ export const QRModal: React.FC<QRModalProps> = ({
         </div>
 
         {/* QR Code Container */}
-        <div className="p-3.5 bg-white border-2 border-black rounded-2xl shadow-[3px_3px_0_0_#000] inline-block mx-auto">
-          <QRCodeSVG
-            value={upiUrl}
-            size={175}
-            level="H"
-            includeMargin={true}
-          />
-        </div>
+        {hasValidPayee ? (
+          <div className="p-3.5 bg-white border-2 border-black rounded-2xl shadow-[3px_3px_0_0_#000] inline-block mx-auto">
+            <QRCodeSVG
+              value={upiUrl}
+              size={175}
+              level="H"
+              includeMargin={true}
+            />
+          </div>
+        ) : (
+          <div className="p-6 bg-zinc-50 border-2 border-dashed border-zinc-300 rounded-2xl inline-flex flex-col items-center justify-center mx-auto text-zinc-400">
+            <QrCode className="w-12 h-12 mb-2 stroke-[1.5]" />
+            <span className="text-xs font-bold">No QR Code Available</span>
+            <span className="text-[10px]">Recipient has not set up a UPI ID</span>
+          </div>
+        )}
 
         {/* UPI ID Pill with Copy Button */}
         <div className="mt-4 flex items-center justify-between bg-zinc-100 border-2 border-black rounded-xl px-3 py-2 text-xs font-mono font-bold text-black">
-          <span className="truncate max-w-[200px]">{upiId || "No UPI ID configured"}</span>
-          <button
-            onClick={handleCopyUpi}
-            className="ml-2 flex items-center gap-1 text-[11px] font-black text-blue-700 hover:text-blue-900 shrink-0"
-          >
-            {copied ? (
-              <>
-                <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
-                <span className="text-emerald-600">Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5" />
-                <span>Copy</span>
-              </>
-            )}
-          </button>
+          <span className="truncate max-w-[200px]">{hasValidPayee ? upiId : "No UPI ID configured"}</span>
+          {hasValidPayee && (
+            <button
+              onClick={handleCopyUpi}
+              className="ml-2 flex items-center gap-1 text-[11px] font-black text-blue-700 hover:text-blue-900 shrink-0"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                  <span className="text-emerald-600">Copied!</span>
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  <span>Copy</span>
+                </>
+              )}
+            </button>
+          )}
         </div>
 
         {/* Supported Apps Chips */}
@@ -135,13 +148,23 @@ export const QRModal: React.FC<QRModalProps> = ({
         {/* Action Buttons */}
         <div className="mt-5 space-y-2.5">
           {/* Deep link for mobile users */}
-          <a
-            href={upiUrl}
-            className="w-full flex items-center justify-center gap-2 bg-[#2DD4BF] hover:bg-teal-300 text-black font-black text-sm py-3 rounded-2xl border-2 border-black shadow-[3px_3px_0_0_#000] active:translate-y-0.5 transition-all"
-          >
-            <ExternalLink className="w-4 h-4" />
-            <span>Open in UPI App</span>
-          </a>
+          {hasValidPayee ? (
+            <a
+              href={upiUrl}
+              className="w-full flex items-center justify-center gap-2 bg-[#2DD4BF] hover:bg-teal-300 text-black font-black text-sm py-3 rounded-2xl border-2 border-black shadow-[3px_3px_0_0_#000] active:translate-y-0.5 transition-all"
+            >
+              <ExternalLink className="w-4 h-4" />
+              <span>Open in UPI App</span>
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="w-full flex items-center justify-center gap-2 bg-zinc-100 text-zinc-400 font-black text-sm py-3 rounded-2xl border-2 border-zinc-300 cursor-not-allowed select-none"
+            >
+              <span>No UPI ID</span>
+            </button>
+          )}
 
           {onMarkPaid && (
             <button
