@@ -19,6 +19,7 @@ import {
   History,
   Check,
   RotateCw,
+  Scale,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { formatINR } from "@/lib/utils";
@@ -40,6 +41,7 @@ export default function SettlePage() {
     whatsappNudge,
     roomName,
     loadSampleData,
+    isHydrated,
   } = useLedger();
 
   const youMember = members.find((m) => m.isYou) || members[0];
@@ -140,15 +142,29 @@ export default function SettlePage() {
     document.body.removeChild(link);
   };
 
+  // HYDRATION SKELETON PLACEHOLDER
+  if (!isHydrated) {
+    return (
+      <div className="w-full min-w-0 max-w-7xl mx-auto space-y-6 animate-pulse p-2">
+        <div className="h-8 w-48 bg-zinc-200 border-2 border-black rounded-lg" />
+        <div className="h-28 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0_0_#000]" />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-8 h-96 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0_0_#000]" />
+          <div className="lg:col-span-4 h-96 bg-white border-2 border-black rounded-2xl shadow-[4px_4px_0_0_#000]" />
+        </div>
+      </div>
+    );
+  }
+
   // EMPTY STATE WHEN NO MEMBERS
   if (members.length === 0) {
     return (
       <div className="p-4 md:p-12 max-w-3xl mx-auto space-y-6">
         <div className="bg-white border-2 border-black rounded-3xl p-8 md:p-12 shadow-[6px_6px_0_0_#000] text-center space-y-5">
-          <div className="w-16 h-16 mx-auto bg-[#2DD4BF] border-2 border-black rounded-2xl flex items-center justify-center text-2xl shadow-[3px_3px_0_0_#000]">
-            ⚖️
+          <div className="w-14 h-14 mx-auto bg-[#2DD4BF] border-2 border-black rounded-2xl flex items-center justify-center shadow-[3px_3px_0_0_#000]">
+            <Scale className="w-7 h-7 text-black stroke-[2.5]" />
           </div>
-          <h1 className="text-2xl md:text-4xl font-black text-black">
+          <h1 className="text-2xl md:text-4xl font-black text-black font-serif">
             No Active Settlements
           </h1>
           <p className="text-xs md:text-sm font-bold text-zinc-600 max-w-md mx-auto">
@@ -158,15 +174,15 @@ export default function SettlePage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <button
               onClick={() => setIsRoommateModalOpen(true)}
-              className="w-full sm:w-auto px-5 py-3 bg-[#FF7A00] text-black font-black text-xs md:text-sm rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000]"
+              className="brutal-btn w-full sm:w-auto px-5 py-3 bg-[#FF7A00] text-black font-black text-xs md:text-sm rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-orange-500 transition-all"
             >
               + Add Roommates
             </button>
             <button
               onClick={loadSampleData}
-              className="w-full sm:w-auto px-5 py-3 bg-[#2DD4BF] text-black font-black text-xs md:text-sm rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000]"
+              className="brutal-btn w-full sm:w-auto px-5 py-3 bg-[#2DD4BF] text-black font-black text-xs md:text-sm rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-teal-300 transition-all"
             >
-              Load Demo Data
+              Load Sample Data
             </button>
           </div>
         </div>
