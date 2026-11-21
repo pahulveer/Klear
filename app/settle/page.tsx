@@ -56,7 +56,13 @@ export default function SettlePage() {
   const [copiedUpi, setCopiedUpi] = useState<string | null>(null);
   const [copiedAll, setCopiedAll] = useState(false);
   const [isRoommateModalOpen, setIsRoommateModalOpen] = useState(false);
-  const [selectedTransferForQr, setSelectedTransferForQr] = useState<any | null>(null);
+  const [selectedTransferForQr, setSelectedTransferForQr] = useState<{
+    payeeName: string;
+    upiId: string;
+    amount: number;
+    transferId: string;
+    isPaid: boolean;
+  } | null>(null);
   const [viewMode, setViewMode] = useState<"individuals" | "transfers">("individuals");
   const [selectedMemberForDetails, setSelectedMemberForDetails] = useState<any | null>(null);
 
@@ -716,7 +722,7 @@ export default function SettlePage() {
                                             onClick={() =>
                                               setSelectedTransferForQr({
                                                 payeeName: creditor?.name || "Roommate",
-                                                upiId: creditor!.upiId,
+                                                upiId: creditor?.upiId || "",
                                                 amount: t.amount,
                                                 transferId: t.id,
                                                 isPaid,
@@ -982,7 +988,7 @@ export default function SettlePage() {
                                 onClick={() =>
                                   setSelectedTransferForQr({
                                     payeeName: creditor?.name || "Roommate",
-                                    upiId: creditor!.upiId,
+                                    upiId: creditor?.upiId || "",
                                     amount: t.amount,
                                     transferId: t.id,
                                     isPaid: isSettled,
@@ -1333,7 +1339,7 @@ export default function SettlePage() {
                                 onClick={() =>
                                   setSelectedTransferForQr({
                                     payeeName: creditorMember?.name || "Roommate",
-                                    upiId: creditorMember!.upiId,
+                                    upiId: creditorMember?.upiId || "",
                                     amount: t.amount,
                                     transferId: t.id,
                                     isPaid: isSettled,

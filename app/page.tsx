@@ -68,6 +68,7 @@ export default function DashboardPage() {
   const [copiedNudge, setCopiedNudge] = useState(false);
   const [isRoommateModalOpen, setIsRoommateModalOpen] = useState(false);
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [missingUpiTransferId, setMissingUpiTransferId] = useState<string | null>(null);
   const [activeQrModal, setActiveQrModal] = useState<{
     isOpen: boolean;
     payeeName: string;
@@ -903,72 +904,97 @@ export default function DashboardPage() {
                   const isPaid = settledTransferIds.includes(t.id);
                   const isYouCreditor = youMember && t.toId === youMember.id;
                   const isYouDebtor = youMember && t.fromId === youMember.id;
+                  const hasCreditorUpi = Boolean(creditor && creditor.upiId && creditor.upiId.trim());
+                  const creditorName = creditor?.name ? creditor.name.split(" ")[0] : "Roommate";
 
                   return (
                     <div
                       key={t.id}
                       onClick={() => {
-                        if (!isPaid && creditor && creditor.upiId && creditor.upiId.trim()) {
+                        if (isPaid) return;
+                        if (hasCreditorUpi) {
+                          setMissingUpiTransferId(null);
                           setActiveQrModal({
                             isOpen: true,
-                            payeeName: creditor.name || "Roommate",
-                            upiId: creditor.upiId.trim(),
+                            payeeName: creditor?.name || "Roommate",
+                            upiId: (creditor?.upiId || "").trim(),
                             amount: t.amount,
                             transferId: t.id,
                             isPaid,
                           });
+                        } else {
+                          setMissingUpiTransferId((prev) => (prev === t.id ? null : t.id));
                         }
                       }}
-                      className={`p-3 rounded-xl border-2 border-black flex items-center justify-between cursor-pointer transition-all ${
+                      className={`p-3 rounded-xl border-2 border-black flex flex-col justify-between cursor-pointer transition-all ${
                         isPaid
                           ? "bg-zinc-100 opacity-60"
                           : "bg-[#FAF8F5] hover:bg-amber-50 shadow-[2px_2px_0_0_#000]"
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div
-                          className={`w-7 h-7 rounded-full border border-black ${
-                            debtor?.avatarBg || "bg-zinc-200"
-                          } text-black font-black text-xs flex items-center justify-center shrink-0`}
-                        >
-                          {debtor?.initials || "R"}
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className={`w-7 h-7 rounded-full border border-black ${
+                              debtor?.avatarBg || "bg-zinc-200"
+                            } text-black font-black text-xs flex items-center justify-center shrink-0`}
+                          >
+                            {debtor?.initials || "R"}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-black text-black truncate">
+                              {debtor?.isYou ? "You" : debtor?.name?.split(" ")[0]} ➔{" "}
+                              {creditor?.isYou ? "You" : creditor?.name?.split(" ")[0]}
+                            </div>
+                            <div className="text-[10px] font-bold text-zinc-500 truncate">
+                              {t.reason || "Room split dues"}
+                            </div>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <div className="text-xs font-black text-black truncate">
-                            {debtor?.isYou ? "You" : debtor?.name?.split(" ")[0]} ➔{" "}
-                            {creditor?.isYou ? "You" : creditor?.name?.split(" ")[0]}
+
+                        <div className="text-right shrink-0">
+                          <div
+                            className={`text-xs font-black font-mono ${
+                              isPaid
+                                ? "text-zinc-500 line-through"
+                                : isYouCreditor
+                                ? "text-emerald-600"
+                                : "text-rose-600"
+                            }`}
+                          >
+                            {isYouCreditor ? "+" : "-"}
+                            {formatINR(t.amount)}
                           </div>
-                          <div className="text-[10px] font-bold text-zinc-500 truncate">
-                            {t.reason || "Room split dues"}
-                          </div>
+                          <span
+                            className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${
+                              isPaid
+                                ? "bg-zinc-200 text-zinc-600 border-zinc-400"
+                                : isYouDebtor
+                                ? "bg-rose-100 text-rose-800 border-rose-800"
+                                : "bg-emerald-100 text-emerald-800 border-emerald-800"
+                            }`}
+                          >
+                            {isPaid ? "SETTLED ✓" : isYouDebtor ? "DUE TODAY" : "PENDING"}
+                          </span>
                         </div>
                       </div>
 
-                      <div className="text-right shrink-0">
-                        <div
-                          className={`text-xs font-black font-mono ${
-                            isPaid
-                              ? "text-zinc-500 line-through"
-                              : isYouCreditor
-                              ? "text-emerald-600"
-                              : "text-rose-600"
-                          }`}
-                        >
-                          {isYouCreditor ? "+" : "-"}
-                          {formatINR(t.amount)}
+                      {/* Inline warning when tapped and creditor has no UPI ID */}
+                      {missingUpiTransferId === t.id && !hasCreditorUpi && (
+                        <div className="mt-2.5 pt-2 border-t border-dashed border-zinc-300 flex items-center justify-between gap-2 text-[11px] font-bold text-amber-900 bg-amber-50/90 rounded-lg px-2.5 py-1.5">
+                          <span>Add a UPI ID for {creditorName} to pay by UPI</span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsRoommateModalOpen(true);
+                            }}
+                            className="text-[10px] font-black underline text-black hover:text-orange-600 shrink-0"
+                          >
+                            Edit Roommate →
+                          </button>
                         </div>
-                        <span
-                          className={`text-[9px] font-black uppercase px-1.5 py-0.2 rounded border ${
-                            isPaid
-                              ? "bg-zinc-200 text-zinc-600 border-zinc-400"
-                              : isYouDebtor
-                              ? "bg-rose-100 text-rose-800 border-rose-800"
-                              : "bg-emerald-100 text-emerald-800 border-emerald-800"
-                          }`}
-                        >
-                          {isPaid ? "SETTLED ✓" : isYouDebtor ? "DUE TODAY" : "PENDING"}
-                        </span>
-                      </div>
+                      )}
                     </div>
                   );
                 })
