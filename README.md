@@ -89,5 +89,3 @@ npm run start
 
 ---
 
-## 📄 License
-MIT License. Built for hackathons and hostel squads everywhere.
