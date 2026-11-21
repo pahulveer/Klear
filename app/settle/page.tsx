@@ -41,6 +41,9 @@ export default function SettlePage() {
     whatsappNudge,
     roomName,
     loadSampleData,
+    clearDemoData,
+    hasDemoData,
+    hasRealExpenses,
     isHydrated,
   } = useLedger();
 
@@ -214,6 +217,26 @@ export default function SettlePage() {
           </span>
         </div>
       </div>
+
+      {/* Demo Data Separation Banner */}
+      {hasDemoData && (
+        <div className="bg-[#FEF08A] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-xs font-black text-amber-950">
+            <span className="text-base">{hasRealExpenses ? "⚡" : "🧪"}</span>
+            <span>
+              {hasRealExpenses
+                ? "Real Settlement Active: 8 demo expenses are excluded from these calculations to protect your real balance."
+                : "Demo Mode Active: Showing sample calculations for 4 roommates. Add real expenses anytime or clear demo data."}
+            </span>
+          </div>
+          <button
+            onClick={clearDemoData}
+            className="self-start sm:self-auto bg-white text-black font-black text-xs px-3.5 py-1.5 rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_0_#000] hover:bg-zinc-100 active:translate-y-0.5 transition-all whitespace-nowrap"
+          >
+            Clear Demo Data
+          </button>
+        </div>
+      )}
 
       {/* Big Orange Banner */}
       <div className="bg-[#FF7A00] border-2 border-black rounded-2xl p-6 shadow-[4px_4px_0_0_#000] text-black space-y-5">
@@ -630,6 +653,26 @@ export default function SettlePage() {
                                       <button
                                         type="button"
                                         onClick={() =>
+                                          handleCopyText(
+                                            isPayer ? otherMember.upiId || "" : m.upiId || "",
+                                            `copy-ind-${t.id}`
+                                          )
+                                        }
+                                        title="Copy UPI ID"
+                                        aria-label="Copy UPI ID"
+                                        className="inline-flex items-center gap-1 bg-white hover:bg-zinc-100 text-black text-[10px] font-black px-2 py-1 rounded-lg border border-black shadow-[1px_1px_0_0_#000] active:translate-y-0.5 transition-all"
+                                      >
+                                        {copiedUpi === `copy-ind-${t.id}` ? (
+                                          <Check className="w-3 h-3 text-emerald-600 stroke-[3]" />
+                                        ) : (
+                                          <Copy className="w-3 h-3" />
+                                        )}
+                                        <span>{copiedUpi === `copy-ind-${t.id}` ? "Copied" : "Copy"}</span>
+                                      </button>
+
+                                      <button
+                                        type="button"
+                                        onClick={() =>
                                           setSelectedTransferForQr({
                                             payeeName: isPayer ? otherMember.name : m.name,
                                             upiId: isPayer ? otherMember.upiId : m.upiId,
@@ -840,12 +883,36 @@ export default function SettlePage() {
                       <div className="pt-2 border-t border-dashed border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-center gap-2 flex-wrap">
                           {creditor.upiId ? (
-                            <a
-                              href={upiLink}
-                              className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
-                            >
-                              <span>Pay {formatINR(t.amount)} to {creditor.name.split(" ")[0]} via UPI →</span>
-                            </a>
+                            <>
+                              <a
+                                href={upiLink}
+                                className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] transition-all"
+                                title="Open in UPI app (mobile only)"
+                              >
+                                <span>Pay {formatINR(t.amount)} to {creditor.name.split(" ")[0]} via UPI →</span>
+                              </a>
+
+                              {/* Desktop / Manual fallback: 1-click Copy UPI ID */}
+                              <button
+                                type="button"
+                                onClick={() => handleCopyText(creditor.upiId || "", `transfer-upi-${t.id}`)}
+                                title="Copy UPI ID for desktop / manual payment"
+                                aria-label={`Copy UPI ID for ${creditor.name}`}
+                                className="inline-flex items-center gap-1.5 bg-white hover:bg-zinc-100 text-black font-black text-xs px-3 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] active:translate-y-0.5 transition-all"
+                              >
+                                {copiedUpi === `transfer-upi-${t.id}` ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                                    <span>Copied!</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5" />
+                                    <span>Copy UPI ID</span>
+                                  </>
+                                )}
+                              </button>
+                            </>
                           ) : (
                             <button
                               onClick={() => setIsRoommateModalOpen(true)}

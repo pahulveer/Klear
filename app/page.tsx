@@ -47,6 +47,7 @@ export default function DashboardPage() {
     loadSampleData,
     clearDemoData,
     hasDemoData,
+    hasRealExpenses,
     whatsappNudge,
     isHydrated,
   } = useLedger();
@@ -484,8 +485,12 @@ export default function DashboardPage() {
             {hasDemoData && (
               <div className="bg-[#FEF08A] border-2 border-black rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-[2px_2px_0_0_#000]">
                 <div className="flex items-center gap-2 text-xs font-black text-amber-950">
-                  <span className="text-base">🧪</span>
-                  <span>Demo Mode Active: 4 roommates &amp; 8 sample expenses loaded across Food, Utilities, Groceries &amp; Party.</span>
+                  <span className="text-base">{hasRealExpenses ? "⚡" : "🧪"}</span>
+                  <span>
+                    {hasRealExpenses
+                      ? "Real Settlement Active: Demo expenses are excluded from your real debt calculations."
+                      : "Demo Mode Active: 4 roommates & 8 sample expenses loaded across Food, Utilities, Groceries & Party."}
+                  </span>
                 </div>
                 <button
                   onClick={clearDemoData}
@@ -626,6 +631,11 @@ export default function DashboardPage() {
                             <span className="font-black text-sm md:text-base text-black truncate">
                               {expense.title}
                             </span>
+                            {expense.isDemo && (
+                              <span className="bg-[#FEF08A] text-amber-950 border border-black text-[9px] font-black px-1.5 py-0.5 rounded shadow-[1px_1px_0_0_#000]">
+                                DEMO
+                              </span>
+                            )}
                             <span
                               className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${getCategoryBadgeColor(
                                 expense.splitMode

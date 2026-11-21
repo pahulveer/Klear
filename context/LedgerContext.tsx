@@ -115,6 +115,9 @@ interface LedgerContextType {
   clearDemoData: () => void;
   clearAllData: () => void;
   hasDemoData: boolean;
+  hasRealExpenses: boolean;
+  realExpenses: Expense[];
+  demoExpenses: Expense[];
   netBalances: Record<string, number>;
   detailedBalances: NetBalance[];
   simplifiedTransfers: SimplifiedTransfer[];
@@ -861,16 +864,24 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  // Live calculations
-  const netBalances = calculateNetBalances(members, expenses, settledTransferIds);
-  const detailedBalances = getDetailedBalances(members, expenses);
+  // Live calculations (cleanly separating demo from real calculations)
+  const realExpenses = expenses.filter((e) => !e.isDemo);
+  const demoExpenses = expenses.filter((e) => e.isDemo);
+  const hasRealExpenses = realExpenses.length > 0;
+
+  // Whenever real expenses exist, real settlement calculations STRICTLY use realExpenses.
+  // When only demo expenses exist, calculations use demo data to demonstrate the app.
+  const activeCalculationExpenses = hasRealExpenses ? realExpenses : expenses;
+
+  const netBalances = calculateNetBalances(members, activeCalculationExpenses, settledTransferIds);
+  const detailedBalances = getDetailedBalances(members, activeCalculationExpenses);
   const simplifiedTransfers = simplifySettlements(
     netBalances,
     members,
     settledTransferIds
   );
 
-  const totalPoolSpent = expenses.reduce((sum, e) => sum + e.totalAmount, 0);
+  const totalPoolSpent = activeCalculationExpenses.reduce((sum, e) => sum + e.totalAmount, 0);
 
   const youMember = members.find((m) => m.isYou) || members[0];
   const youNetBalance = youMember ? netBalances[youMember.id] || 0 : 0;
@@ -915,7 +926,10 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
         loadSampleData,
         clearDemoData,
         clearAllData,
-        hasDemoData: expenses.some((e) => e.isDemo),
+        hasDemoData: demoExpenses.length > 0,
+        hasRealExpenses,
+        realExpenses,
+        demoExpenses,
         netBalances,
         detailedBalances,
         simplifiedTransfers,
