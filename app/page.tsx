@@ -29,7 +29,6 @@ import {
   Network,
   Search,
   CheckCircle2,
-  Sparkles,
   ArrowRight,
   Clock,
   ChevronRight,
@@ -200,10 +199,6 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black text-xs font-black px-3 py-1 rounded-full border-2 border-black shadow-[1.5px_1.5px_0_0_#000]">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>COLLEGE HOSTEL EXPENSE SPLITTER</span>
-            </div>
             <h1 className="text-3xl md:text-5xl font-black tracking-tight text-black font-serif">
               Welcome to Klear
             </h1>
