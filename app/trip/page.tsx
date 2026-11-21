@@ -821,7 +821,7 @@ export default function TripPlannerPage() {
 
                 {members.length === 0 ? (
                   <div className="p-2.5 bg-white border-2 border-black rounded-xl text-xs font-bold text-zinc-600">
-                    No roommates added yet. Load sample data or add roommates from the header to test the flake simulator.
+                    No roommates added yet. Load demo data or add roommates from the header to test the flake simulator.
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">

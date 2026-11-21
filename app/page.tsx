@@ -174,7 +174,7 @@ export default function DashboardPage() {
               Welcome to Klear
             </h1>
             <p className="text-sm md:text-base font-bold text-zinc-600 max-w-lg mx-auto">
-              Your ledger is currently empty. Start fresh by adding your roommates, or load sample data to test debt simplification immediately.
+              Your ledger is currently empty. Start fresh by adding your roommates, or load demo data to test debt simplification immediately.
             </p>
           </div>
 
@@ -201,7 +201,7 @@ export default function DashboardPage() {
               className="brutal-btn w-full sm:w-auto flex items-center justify-center gap-2 bg-[#2DD4BF] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:bg-teal-300 transition-all"
             >
               <RotateCw className="w-5 h-5" />
-              <span>Load Sample Data</span>
+              <span>Load Demo Data</span>
             </button>
           </div>
         </div>
@@ -425,7 +425,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Tile 3: Min Tabs */}
+            {/* Tile 3: Payments Needed */}
             <div className="bg-[#2DD4BF] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black text-teal-950 uppercase tracking-wider">
@@ -681,7 +681,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right Column: Room Debt Matrix + Net Tab Flow Vector + WhatsApp Nudge */}
+        {/* Right Column: Room Debt Matrix + Who Pays Whom + WhatsApp Nudge */}
         <div className="lg:col-span-4 space-y-6 min-w-0">
           {/* Card 1: Room Debt Matrix */}
           <div className="bg-white border-2 border-black rounded-2xl p-5 shadow-[4px_4px_0_0_#000] space-y-4">

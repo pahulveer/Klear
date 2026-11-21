@@ -108,7 +108,7 @@ export const Header: React.FC = () => {
 
   const handleResetSample = () => {
     loadSampleData();
-    triggerToast("Loaded Sample Data!");
+    triggerToast("Loaded Demo Data!");
   };
 
   const handleClear = () => {
@@ -391,14 +391,14 @@ export const Header: React.FC = () => {
               </span>
             </button>
 
-            {/* Load Sample Data Button (Compact icon on mobile, text on sm+) */}
+            {/* Load Demo Data Button (Compact icon on mobile, text on sm+) */}
             <button
               onClick={handleResetSample}
-              title="Load realistic sample data"
+              title="Load realistic demo data"
               className="inline-flex items-center gap-1 text-xs font-black bg-[#2DD4BF] text-black border-2 border-black rounded-lg p-1.5 sm:px-2.5 sm:py-1.5 shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition-all whitespace-nowrap"
             >
               <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Load Sample Data</span>
+              <span className="hidden sm:inline">Load Demo Data</span>
             </button>
 
             {/* Reset / Clear All Button (Compact icon on mobile, text on sm+) */}

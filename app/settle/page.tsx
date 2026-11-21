@@ -171,7 +171,7 @@ export default function SettlePage() {
               onClick={loadSampleData}
               className="brutal-btn w-full sm:w-auto px-5 py-3 bg-[#2DD4BF] text-black font-black text-xs md:text-sm rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-teal-300 transition-all"
             >
-              Load Sample Data
+              Load Demo Data
             </button>
           </div>
         </div>
