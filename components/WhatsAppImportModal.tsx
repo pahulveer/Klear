@@ -35,10 +35,6 @@ interface ExtractedExpense {
   sourceLine: string;
 }
 
-export const SAMPLE_HINGLISH_CHAT = `[20/11/24, 11:15 PM] Veer: Bhai Zomato se Behrouz Biryani order kiya tha total Rs 1260 hua. Tanya ne nahi khaya, baaki 3 log split karlo. Maine pay kar diya!
-[21/11/24, 10:30 AM] Rohan: Room 402 ka electricity bill aaya tha Rs 1800. Maine Google Pay se bhar diya. Sab 4 log equal de dena.
-[21/11/24, 04:45 PM] Jiggi: Metro station se hostel tak ka shared auto ka 240 maine cash diya tha. Veer aur main hi the auto me.`;
-
 export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
   isOpen,
   onClose,
@@ -66,14 +62,9 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleLoadSample = () => {
-    setChatText(SAMPLE_HINGLISH_CHAT);
-    setErrorMessage(null);
-  };
-
   const handleExtract = async () => {
     if (!chatText.trim()) {
-      setErrorMessage("Please paste some WhatsApp messages or click 'Try Sample Hinglish Chat'.");
+      setErrorMessage("Please paste some WhatsApp messages to extract expenses.");
       return;
     }
 
@@ -247,16 +238,6 @@ export const WhatsAppImportModal: React.FC<WhatsAppImportModalProps> = ({
                 <label className="text-xs font-black uppercase tracking-wider text-black flex items-center gap-1.5">
                   <span>PASTE CHAT TEXT / EXPORT:</span>
                 </label>
-
-                {/* 1-Click Sample Hinglish Button */}
-                <button
-                  type="button"
-                  onClick={handleLoadSample}
-                  className="inline-flex items-center gap-1 text-[11px] font-black bg-[#FED7AA] text-orange-950 border-2 border-black px-2.5 py-1 rounded-lg shadow-[1.5px_1.5px_0_0_#000] hover:bg-orange-200 transition-colors self-start sm:self-auto"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Try Sample Hinglish Chat</span>
-                </button>
               </div>
 
               <textarea

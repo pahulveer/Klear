@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useLedger } from "@/context/LedgerContext";
 import {
-  RotateCcw,
   Trash2,
   CheckCircle2,
   Edit2,
@@ -25,7 +24,6 @@ export const Header: React.FC = () => {
     roomName,
     setRoomName,
     members,
-    loadSampleData,
     clearAllData,
     groups,
     activeGroupId,
@@ -105,11 +103,6 @@ export const Header: React.FC = () => {
     setIsCreatingNewGroup(false);
     setIsDropdownOpen(false);
     triggerToast(`Created & switched to "${trimmed}"!`);
-  };
-
-  const handleResetSample = () => {
-    loadSampleData();
-    triggerToast("Loaded Demo Data!");
   };
 
   const handleClear = () => {
@@ -386,11 +379,10 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Actions: Roommates, Demo Data, Reset */}
+        {/* Right Actions: Roommates, Reset */}
         {!isHydrated ? (
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 animate-pulse">
             <div className="h-[34px] w-8 sm:w-28 bg-[#FAF8F5] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]" />
-            <div className="h-[34px] w-8 sm:w-32 bg-[#2DD4BF] border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]" />
             <div className="h-[34px] w-8 sm:w-16 bg-white border-2 border-black rounded-xl shadow-[2px_2px_0_0_#000]" />
           </div>
         ) : (
@@ -407,17 +399,6 @@ export const Header: React.FC = () => {
               <span className="bg-black text-white text-[10px] px-1.5 py-0.2 rounded-full font-mono">
                 {members.length}
               </span>
-            </button>
-
-            {/* Load Demo Data Button */}
-            <button
-              onClick={handleResetSample}
-              title="Load realistic sample data (Hostel 402 with 4 roommates and splits)"
-              aria-label="Load Demo Data"
-              className="inline-flex items-center gap-1.5 text-xs font-black bg-[#2DD4BF] text-black border-2 border-black rounded-xl p-2 sm:px-3 sm:py-1.5 shadow-[2px_2px_0_0_#000] hover:bg-teal-300 hover:translate-x-[0.5px] hover:translate-y-[0.5px] transition-all whitespace-nowrap"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Demo Data</span>
             </button>
 
             {/* Reset / Clear All Button */}

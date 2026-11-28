@@ -6,7 +6,6 @@ export interface Member {
   initials: string;
   isYou?: boolean;
   phone?: string;
-  isDemo?: boolean;
 }
 
 export type SplitMode = 'equal' | 'unequal' | 'shares' | 'item-wise';
@@ -36,7 +35,6 @@ export interface Expense {
   note?: string;
   receiptImage?: string;
   verified?: boolean;
-  isDemo?: boolean;
 }
 
 export interface SimplifiedTransfer {

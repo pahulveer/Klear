@@ -49,7 +49,7 @@ const CATEGORIES = [
 function AddExpenseForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { members, addExpense, roomName, loadSampleData } = useLedger();
+  const { members, addExpense, roomName } = useLedger();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scannerRef = useRef<HTMLDivElement>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
@@ -537,12 +537,6 @@ function AddExpenseForm() {
               className="bg-[#FF7A00] text-black font-black text-xs px-3.5 py-1.5 rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_0_#000]"
             >
               + Add Roommate
-            </button>
-            <button
-              onClick={loadSampleData}
-              className="bg-white text-black font-black text-xs px-3.5 py-1.5 rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_0_#000]"
-            >
-              Load Sample Data
             </button>
           </div>
         </div>

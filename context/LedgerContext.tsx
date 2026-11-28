@@ -2,7 +2,6 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Member, Expense, SimplifiedTransfer, NetBalance, TripPlan, TripPlanItem, Group } from "@/types/ledger";
-import { SAMPLE_MEMBERS, SAMPLE_EXPENSES } from "./sampleData";
 import {
   calculateNetBalances,
   getDetailedBalances,
@@ -10,95 +9,6 @@ import {
   buildWhatsAppNudge,
   getRecommendedPayer,
 } from "@/lib/settleDebts";
-
-export const SAMPLE_TRIP_PLAN: TripPlan = {
-  id: "trip-sample-kasol",
-  destination: "Kasol & Tosh Valley",
-  days: 3,
-  vibe: "Budget Hostel",
-  status: "planned",
-  flakedMemberIds: [],
-  paidMemberIds: ["m-1", "m-2"], // Veer & Rohan paid, Jiggi & Mota owe
-  items: [
-    {
-      id: "plan-1",
-      title: "Riverside Hostel Dorm (3 Nights)",
-      category: "Hostel / Stay",
-      estimatedAmount: 4800,
-      costType: "fixed",
-    },
-    {
-      id: "plan-2",
-      title: "Shared Tempo Traveller from Delhi",
-      category: "Transport",
-      estimatedAmount: 7200,
-      costType: "fixed",
-    },
-    {
-      id: "plan-3",
-      title: "Cafe Meals, Israeli Food & Chai",
-      category: "Food & Drink",
-      estimatedAmount: 3600,
-      costType: "variable",
-    },
-    {
-      id: "plan-4",
-      title: "Kheerganga Trek Guide & Hot Spring Entry",
-      category: "Activities",
-      estimatedAmount: 1600,
-      costType: "fixed",
-    },
-    {
-      id: "plan-5",
-      title: "Campfire & Late Night Munchies",
-      category: "Groceries",
-      estimatedAmount: 1200,
-      costType: "variable",
-    },
-  ],
-};
-
-export const SAMPLE_OVER_TRIP: TripPlan = {
-  id: "trip-sample-goa",
-  destination: "Goa Beach Pod & Scuba",
-  days: 4,
-  vibe: "Standard",
-  status: "over",
-  flakedMemberIds: [],
-  paidMemberIds: ["m-1", "m-2", "m-3", "m-4"], // Everyone paid! -> Crossed out trip!
-  items: [
-    {
-      id: "over-1",
-      title: "Anjuna Hostel 4-Bed Dorm (4 Nights)",
-      category: "Hostel / Stay",
-      estimatedAmount: 9600,
-      costType: "fixed",
-    },
-    {
-      id: "over-2",
-      title: "Scooter Rentals & Petrol",
-      category: "Transport",
-      estimatedAmount: 4800,
-      costType: "fixed",
-    },
-    {
-      id: "over-3",
-      title: "Shack Seafood, Curries & Drinks",
-      category: "Food & Drink",
-      estimatedAmount: 6400,
-      costType: "variable",
-    },
-    {
-      id: "over-4",
-      title: "Grand Island Scuba Diving",
-      category: "Activities",
-      estimatedAmount: 5200,
-      costType: "fixed",
-    },
-  ],
-};
-
-export const SAMPLE_TRIPS: TripPlan[] = [SAMPLE_TRIP_PLAN, SAMPLE_OVER_TRIP];
 
 interface LedgerContextType {
   members: Member[];
@@ -111,13 +21,7 @@ interface LedgerContextType {
   addExpense: (expense: Omit<Expense, "id">) => void;
   deleteExpense: (id: string) => void;
   toggleSettleTransfer: (transferId: string) => void;
-  loadSampleData: () => void;
-  clearDemoData: () => void;
   clearAllData: () => void;
-  hasDemoData: boolean;
-  hasRealExpenses: boolean;
-  realExpenses: Expense[];
-  demoExpenses: Expense[];
   netBalances: Record<string, number>;
   detailedBalances: NetBalance[];
   simplifiedTransfers: SimplifiedTransfer[];
@@ -773,72 +677,6 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
     setExpenses((prev) => [...createdExpenses, ...prev]);
   };
 
-  const loadSampleData = () => {
-    const sampleName = "Room 402 Squad";
-    setRoomNameState(sampleName);
-    setMembers(SAMPLE_MEMBERS);
-    setExpenses(SAMPLE_EXPENSES);
-    setSettledTransferIds([]);
-    setTrips(SAMPLE_TRIPS);
-    setActiveTripId(SAMPLE_TRIP_PLAN.id);
-
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === activeGroupId
-          ? {
-              ...g,
-              name: sampleName,
-              icon: "🛏️",
-              members: SAMPLE_MEMBERS,
-              expenses: SAMPLE_EXPENSES,
-              settledTransferIds: [],
-              trips: SAMPLE_TRIPS,
-            }
-          : g
-      )
-    );
-  };
-
-  const clearDemoData = () => {
-    // Only remove expenses explicitly flagged as demo; NEVER delete user expenses
-    const nonDemoExpenses = expenses.filter((e) => !e.isDemo);
-
-    // Identify member IDs that are referenced by real user expenses
-    const referencedMemberIds = new Set<string>();
-    nonDemoExpenses.forEach((e) => {
-      referencedMemberIds.add(e.paidById);
-      Object.keys(e.splitDetails || {}).forEach((mid) => referencedMemberIds.add(mid));
-    });
-
-    // Keep members that are not demo or are actively used by real expenses
-    const remainingMembers = members.filter(
-      (m) => !m.isDemo || referencedMemberIds.has(m.id)
-    );
-
-    // Keep non-sample trips
-    const nonDemoTrips = trips.filter((t) => !t.id.startsWith("trip-sample-"));
-
-    setExpenses(nonDemoExpenses);
-    setMembers(remainingMembers);
-    setTrips(nonDemoTrips);
-    if (activeTripId.startsWith("trip-sample-")) {
-      setActiveTripId(nonDemoTrips[0]?.id || "");
-    }
-
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === activeGroupId
-          ? {
-              ...g,
-              members: remainingMembers,
-              expenses: nonDemoExpenses,
-              trips: nonDemoTrips,
-            }
-          : g
-      )
-    );
-  };
-
   const clearAllData = () => {
     const defaultName = "My Hostel Group";
     setRoomNameState(defaultName);
@@ -864,24 +702,15 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
     );
   };
 
-  // Live calculations (cleanly separating demo from real calculations)
-  const realExpenses = expenses.filter((e) => !e.isDemo);
-  const demoExpenses = expenses.filter((e) => e.isDemo);
-  const hasRealExpenses = realExpenses.length > 0;
-
-  // Whenever real expenses exist, real settlement calculations STRICTLY use realExpenses.
-  // When only demo expenses exist, calculations use demo data to demonstrate the app.
-  const activeCalculationExpenses = hasRealExpenses ? realExpenses : expenses;
-
-  const netBalances = calculateNetBalances(members, activeCalculationExpenses, settledTransferIds);
-  const detailedBalances = getDetailedBalances(members, activeCalculationExpenses);
+  const netBalances = calculateNetBalances(members, expenses, settledTransferIds);
+  const detailedBalances = getDetailedBalances(members, expenses);
   const simplifiedTransfers = simplifySettlements(
     netBalances,
     members,
     settledTransferIds
   );
 
-  const totalPoolSpent = activeCalculationExpenses.reduce((sum, e) => sum + e.totalAmount, 0);
+  const totalPoolSpent = expenses.reduce((sum, e) => sum + e.totalAmount, 0);
 
   const youMember = members.find((m) => m.isYou) || members[0];
   const youNetBalance = youMember ? netBalances[youMember.id] || 0 : 0;
@@ -923,13 +752,7 @@ export const LedgerProvider: React.FC<{ children: React.ReactNode }> = ({
         addExpense,
         deleteExpense,
         toggleSettleTransfer,
-        loadSampleData,
-        clearDemoData,
         clearAllData,
-        hasDemoData: demoExpenses.length > 0,
-        hasRealExpenses,
-        realExpenses,
-        demoExpenses,
         netBalances,
         detailedBalances,
         simplifiedTransfers,

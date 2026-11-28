@@ -44,10 +44,6 @@ export default function SettlePage() {
     detailedBalances,
     whatsappNudge,
     roomName,
-    loadSampleData,
-    clearDemoData,
-    hasDemoData,
-    hasRealExpenses,
     isHydrated,
   } = useLedger();
 
@@ -196,12 +192,6 @@ export default function SettlePage() {
             >
               + Add Roommates
             </button>
-            <button
-              onClick={loadSampleData}
-              className="brutal-btn w-full sm:w-auto px-5 py-3 bg-[#2DD4BF] text-black font-black text-xs md:text-sm rounded-xl border-2 border-black shadow-[3px_3px_0_0_#000] hover:bg-teal-300 transition-all"
-            >
-              Load Demo Data
-            </button>
           </div>
         </div>
 
@@ -247,26 +237,6 @@ export default function SettlePage() {
           </span>
         </div>
       </div>
-
-      {/* Demo Data Separation Banner */}
-      {hasDemoData && (
-        <div className="bg-[#FEF08A] border-2 border-black rounded-2xl p-4 shadow-[3px_3px_0_0_#000] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-xs font-black text-amber-950">
-            <span className="text-base">{hasRealExpenses ? "⚡" : "🧪"}</span>
-            <span>
-              {hasRealExpenses
-                ? "Real Settlement Active: 8 demo expenses are excluded from these calculations to protect your real balance."
-                : "Demo Mode Active: Showing sample calculations for 4 roommates. Add real expenses anytime or clear demo data."}
-            </span>
-          </div>
-          <button
-            onClick={clearDemoData}
-            className="self-start sm:self-auto bg-white text-black font-black text-xs px-3.5 py-1.5 rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_0_#000] hover:bg-zinc-100 active:translate-y-0.5 transition-all whitespace-nowrap"
-          >
-            Clear Demo Data
-          </button>
-        </div>
-      )}
 
       {/* Big WOW Hero Banner: Clearly Explaining Debt Minimization Before vs. After */}
       <div className="bg-[#FF7A00] border-2 border-black rounded-3xl p-6 shadow-[4px_4px_0_0_#000] text-black space-y-5">
@@ -511,7 +481,7 @@ export default function SettlePage() {
                 <div className="bg-white border-2 border-dashed border-black rounded-2xl p-8 text-center shadow-[2px_2px_0_0_#000] space-y-2">
                   <div className="text-sm font-black text-black">No roommates found</div>
                   <div className="text-xs font-bold text-zinc-500">
-                    Add roommates or load demo data to view individual stats and debt breakdown.
+                    Add roommates to view individual stats and debt breakdown.
                   </div>
                 </div>
               ) : (

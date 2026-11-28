@@ -2,12 +2,7 @@
 
 import React, { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import {
-  useLedger,
-  SAMPLE_TRIP_PLAN,
-  SAMPLE_OVER_TRIP,
-  SAMPLE_TRIPS,
-} from "@/context/LedgerContext";
+import { useLedger } from "@/context/LedgerContext";
 import {
   Compass,
   ArrowLeft,
@@ -276,18 +271,6 @@ export default function TripPlannerPage() {
     setTripFilterTab("planned");
   };
 
-  // Load sample trips (both Kasol Planned and Goa Over)
-  const handleLoadSampleTrips = () => {
-    if (trips.length === 0) {
-      SAMPLE_TRIPS.forEach((st) => createTrip(st));
-    } else {
-      setTripPlan(SAMPLE_TRIP_PLAN);
-    }
-    setDestination(SAMPLE_TRIP_PLAN.destination);
-    setDays(SAMPLE_TRIP_PLAN.days);
-    setVibe(SAMPLE_TRIP_PLAN.vibe);
-  };
-
   // Generate AI Pre-Trip Budget
   const handleGenerateBudget = async () => {
     if (!destination.trim()) return;
@@ -485,15 +468,6 @@ export default function TripPlannerPage() {
             <Plus className="w-3.5 h-3.5 stroke-[3]" />
             <span>Add Planned Item</span>
           </button>
-
-          <button
-            onClick={handleLoadSampleTrips}
-            className="flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-3.5 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0_0_#000] transition-all"
-            title="Load sample planned Kasol trip and completed Goa trip"
-          >
-            <RotateCw className="w-3.5 h-3.5" />
-            <span>Load Sample Trips</span>
-          </button>
         </div>
       </div>
 
@@ -556,7 +530,7 @@ export default function TripPlannerPage() {
           <div className="p-4 bg-[#FAF8F5] border border-dashed border-black rounded-xl text-center text-xs font-bold text-zinc-600">
             {tripFilterTab === "over"
               ? "No trips marked as over yet. Mark any completed trip as 'Over' to archive it here!"
-              : "No planned trips. Click '+ Plan Another Trip' or 'Load Sample Trips' above!"}
+              : "No planned trips. Click '+ Plan Another Trip' above!"}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
@@ -821,7 +795,7 @@ export default function TripPlannerPage() {
 
                 {members.length === 0 ? (
                   <div className="p-2.5 bg-white border-2 border-black rounded-xl text-xs font-bold text-zinc-600">
-                    No roommates added yet. Load demo data or add roommates from the header to test the flake simulator.
+                    No roommates added yet. Add roommates from the header to test the flake simulator.
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -1132,7 +1106,7 @@ export default function TripPlannerPage() {
         {/* Roommate Cards Grid */}
         {members.length === 0 ? (
           <div className="p-4 bg-[#FAF8F5] border-2 border-dashed border-black rounded-xl text-xs font-bold text-zinc-600 text-center">
-            No roommates in your group yet. Add roommates in the top header or load demo data to track payments!
+            No roommates in your group yet. Add roommates in the top header to track payments!
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1262,14 +1236,8 @@ export default function TripPlannerPage() {
             <Luggage className="w-10 h-10 mx-auto text-zinc-400" />
             <h3 className="text-sm font-black text-black">No Planned Trip Items Yet</h3>
             <p className="text-xs font-bold text-zinc-500 max-w-sm mx-auto">
-              Click &quot;Generate Pre-Trip Budget&quot; above or click &quot;Load Sample Kasol Trip&quot; to test the smart payer recommendations.
+              Click &quot;Generate Pre-Trip Budget&quot; above or add items manually to plan your trip.
             </p>
-            <button
-              onClick={handleLoadSampleTrips}
-              className="px-4 py-2 bg-[#2DD4BF] text-black font-black text-xs rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]"
-            >
-              Load Sample Kasol Trip
-            </button>
           </div>
         ) : (
           <div className="space-y-3">

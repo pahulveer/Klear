@@ -8,7 +8,6 @@ import {
   Camera,
   ArrowUpRight,
   ArrowDownRight,
-  RotateCw,
   Users,
   Receipt,
   GitCommit,
@@ -29,6 +28,7 @@ import {
   Network,
   Search,
   CheckCircle2,
+  Sparkles,
   ArrowRight,
   Clock,
   ChevronRight,
@@ -52,10 +52,6 @@ export default function DashboardPage() {
     simplifiedTransfers,
     settledTransferIds,
     toggleSettleTransfer,
-    loadSampleData,
-    clearDemoData,
-    hasDemoData,
-    hasRealExpenses,
     whatsappNudge,
     isHydrated,
   } = useLedger();
@@ -199,6 +195,10 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-3">
+            <div className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black text-xs font-black px-3 py-1 rounded-full border-2 border-black shadow-[1.5px_1.5px_0_0_#000]">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>COLLEGE HOSTEL EXPENSE SPLITTER</span>
+            </div>
             <h1 className="text-3xl md:text-5xl font-black tracking-tight text-black font-serif">
               Welcome to Klear
             </h1>
@@ -207,7 +207,7 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Three Prominent Action Buttons */}
+          {/* Two Prominent Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
             <button
               onClick={() => setIsRoommateModalOpen(true)}
@@ -223,14 +223,6 @@ export default function DashboardPage() {
             >
               <MessageSquare className="w-5 h-5 stroke-[2.5]" />
               <span>Import WhatsApp Chat</span>
-            </button>
-
-            <button
-              onClick={loadSampleData}
-              className="brutal-btn w-full sm:w-auto flex items-center justify-center gap-2 bg-[#2DD4BF] text-black font-black text-sm md:text-base px-6 py-3.5 rounded-2xl border-2 border-black shadow-[4px_4px_0_0_#000] hover:bg-teal-300 transition-all"
-            >
-              <RotateCw className="w-5 h-5" />
-              <span>Load Room 402 Sample</span>
             </button>
           </div>
         </div>
@@ -626,26 +618,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Demo Data Separation Indicator Banner */}
-          {hasDemoData && (
-            <div className="bg-[#FEF08A] border-2 border-black rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[2px_2px_0_0_#000]">
-              <div className="flex items-center gap-2 text-xs font-black text-amber-950">
-                <span className="text-base">{hasRealExpenses ? "⚡" : "🧪"}</span>
-                <span>
-                  {hasRealExpenses
-                    ? "Real Ledger Active: Sample demo expenses are isolated from your live debt calculation."
-                    : "Demo Mode Active: 4 roommates & 8 realistic expenses loaded across Food, Utilities, Groceries & Party."}
-                </span>
-              </div>
-              <button
-                onClick={clearDemoData}
-                className="self-start sm:self-auto bg-white text-black font-black text-xs px-3.5 py-1.5 rounded-xl border-2 border-black shadow-[1.5px_1.5px_0_0_#000] hover:bg-zinc-100 active:translate-y-0.5 transition-all whitespace-nowrap"
-              >
-                Clear Demo Data
-              </button>
-            </div>
-          )}
-
           {/* Recent Activity / Expenses Section */}
           <div className="space-y-4 pt-1">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -740,7 +712,6 @@ export default function DashboardPage() {
                         Clear Filters
                       </button>
                     ) : (
-                      <>
                         <Link
                           href="/add"
                           className="inline-flex items-center gap-1.5 bg-[#FF7A00] text-black font-black text-xs px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000]"
@@ -748,14 +719,6 @@ export default function DashboardPage() {
                           <Plus className="w-3.5 h-3.5" />
                           <span>+ Add First Expense</span>
                         </Link>
-                        <button
-                          onClick={loadSampleData}
-                          className="inline-flex items-center gap-1.5 bg-[#2DD4BF] text-black font-black text-xs px-4 py-2 rounded-xl border-2 border-black shadow-[2px_2px_0_0_#000] hover:bg-teal-300 transition-all"
-                        >
-                          <RotateCw className="w-3.5 h-3.5" />
-                          <span>Load Sample Data</span>
-                        </button>
-                      </>
                     )}
                   </div>
                 </div>
@@ -823,11 +786,6 @@ export default function DashboardPage() {
                             <span className="font-black text-sm md:text-base text-black truncate">
                               {expense.title}
                             </span>
-                            {expense.isDemo && (
-                              <span className="bg-[#FEF08A] text-amber-950 border border-black text-[9px] font-black px-1.5 py-0.2 rounded shadow-[1px_1px_0_0_#000]">
-                                DEMO
-                              </span>
-                            )}
                             <span
                               className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${getCategoryBadgeColor(
                                 expense.splitMode
